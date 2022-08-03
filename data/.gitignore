@@ -5,3 +5,5 @@ raw_data_EBS_yfs.RDS
 raw_data_EBS_pollock.RDS
 Krista data
 ROMS_L2_temp_hinddat.csv
+ROMS_bot_temp_yr.csv
+ROMS_rho_points_Intersect.csv
