@@ -76,7 +76,12 @@
 										random = ~ (1|cohort) + (1|year/haul),
 										data = pollock_dat)
 	
-	summary(base_mod$gam)
+	# with bam()
+	base_mod <- bam(log_wt_scaled ~ s(age) + t2(latitude, longitude) + s(julian_day),
+									random = ~ (1|cohort) + (1|year/haul),
+									data = pollock_dat)
+	
+	summary(base_mod)
 	summary(base_mod$mer)	
   gam.check(base_mod$gam)	
   AICc(base_mod)

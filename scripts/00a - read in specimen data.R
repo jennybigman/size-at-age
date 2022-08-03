@@ -2,6 +2,7 @@
 
 	library(here)
 	library(tidyverse)
+	library(lubridate)
 
 	# create object names for file names
 	dat_prestring <- paste0(here(), ("/data/"))
@@ -35,42 +36,52 @@
   list_names <- sapply(c("pcod", "pollock", "yfsole"), list_names_fun)
   
   names(df_list) <- list_names
-  
-  list2env(setNames(df_list, list_names), .GlobalEnv)
-  
-  # Pcod dat
-  pcod_age_weight_dat <- df_pcod$specimen
-  pcod_haul <- df_pcod$haul
-  
-	#names_haul <- names(haul)
-	#names_pcod_dat <- names(pcod_age_weight_dat)
-	#names_match <- intersect(names_haul, names_pcod_dat)
-	
-	pcod_specimen_dat <- full_join(pcod_age_weight_dat, pcod_haul, 
-																 by = c("CRUISEJOIN",
-																 			 "HAULJOIN"))
-	
-	names(pcod_specimen_dat) <- tolower(names(pcod_specimen_dat))
-	
-	# Pollock dat 
-	pollock_age_weight_dat <- df_pollock$specimen
-  pollock_haul <- df_pollock$haul
-  
-	pollock_specimen_dat <- full_join(pollock_age_weight_dat, pollock_haul, 
-																 by = c("CRUISEJOIN",
-																 			 "HAULJOIN")) 
-	
-	names(pollock_specimen_dat) <- tolower(names(pollock_specimen_dat))
-
-	# Yellowfin sole dat 
-	yfinsole_age_weight_dat <- df_yfsole$specimen
-	yfinsole_haul <- df_yfsole$haul
-  
-	yfinsole_specimen_dat <- full_join(yfinsole_age_weight_dat, yfinsole_haul, 
-																 by = c("CRUISEJOIN",
-																 			 "HAULJOIN")) 
-	
-	names(yfinsole_specimen_dat) <- tolower(names(yfinsole_specimen_dat))
-
- unique(yfinsole_specimen_dat$stationid)
  
+ # wrangle
+ wrangling_func <- function(x){
+		
+ 		#pull out relevant dfs from list a d join
+		spec_dat <- x$specimen
+  	haul_dat <- x$haul
+  
+		specimen_dat <- full_join(spec_dat, haul_dat, 
+																 by = "HAULJOIN")
+		# change col names to lowercase
+		names(specimen_dat) <- tolower(names(specimen_dat))
+	
+		# drop unneeded cols
+		names_keep <- c("length", "sex", "weight", "age", "start_time", 
+										"start_latitude", "start_longitude", "stationid",
+										"bottom_depth", "surface_temperature", "haul.x")
+	
+		specimen_dat <- specimen_dat %>%
+			select(all_of(names_keep))
+									
+		# convert dates
+		specimen_dat <- specimen_dat %>%
+			mutate(date = as_date(start_time),
+						 month = month(date),
+						 year = year(date),
+						 jday = yday(date),
+						 cohort = year - age)
+		
+	# turn cohort and age into factors for the model and log variables
+	specimen_dat <- specimen_dat %>%
+		filter(weight > 0) %>%
+		mutate(age_f = as.factor(age),
+					 cohort_f = as.factor(cohort),
+					 log_wt = log10(weight)) %>%
+		rename(latitude = start_latitude,
+					 longitude = start_longitude)
+	
+ }
+ 
+ df_list_wrangled <- lapply(df_list, wrangling_func)
+ 
+ # join specimen data and ROMS temp
+ join_func <- function(x){
+ 
+ 		specimen_dat <- merge(x, ROMS_bot_temp_yr, by = "year")
+ }
+ 
+ spec_temp_dat <- lapply(df_list_wrangled, join_func)
