@@ -7,3 +7,6 @@ Krista data
 ROMS_L2_temp_hinddat.csv
 ROMS_bot_temp_yr.csv
 ROMS_rho_points_Intersect.csv
+ROMS_sum_temp_avg.csv
+df_list_wrangled.csv
+df_list_wrangled_names.csv
