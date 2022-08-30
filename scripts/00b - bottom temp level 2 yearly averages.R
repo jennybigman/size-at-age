@@ -137,9 +137,19 @@
 	ROMS_dat_hind_trim$week <- week(ROMS_dat_hind_trim$date) # week of year
 	ROMS_dat_hind_trim$year <- year(ROMS_dat_hind_trim$date)
 
+	# yearly avg
 	ROMS_bot_temp_yr <- ROMS_dat_hind_trim %>%
 		group_by(year) %>%
 		summarise(mean_temp = mean(temp))
 	
 	fwrite(ROMS_bot_temp_yr, "./data/ROMS_bot_temp_yr.csv")
+	
+	# avg for summer
+	months_keep <- c("4", "5", "6")
+	
+	ROMS_sum_temp_avg <- ROMS_dat_hind_trim %>%
+		filter(month %in% months_keep) %>%
+		group_by(year) %>%
+		summarize(mean_sum_temp = mean(temp))
 
+	fwrite(ROMS_sum_temp_avg, "./data/ROMS_sum_temp_avg.csv")

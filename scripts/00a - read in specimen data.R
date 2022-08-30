@@ -1,8 +1,10 @@
 # read in EBS bottom trawl survey data
-
+	
+	library(erer)
 	library(here)
 	library(tidyverse)
 	library(lubridate)
+	
 
 	# create object names for file names
 	dat_prestring <- paste0(here(), ("/data/"))
@@ -56,6 +58,8 @@
 	
 		specimen_dat <- specimen_dat %>%
 			select(all_of(names_keep))
+		
+		specimen_dat$species <- 
 									
 		# convert dates
 		specimen_dat <- specimen_dat %>%
@@ -76,12 +80,10 @@
 	
  }
  
- df_list_wrangled <- lapply(df_list, wrangling_func)
+ df_list_wrangled <- lapply(df_list, wrangling_func) 
  
- # join specimen data and ROMS temp
- join_func <- function(x){
+ # add species as column, bind rows, and save file
+ 	df_list_wrangled_names <- dplyr::bind_rows(df_list_wrangled, .id = "species")
+ 	
+	write.csv(df_list_wrangled_names, file = here("./data/df_list_wrangled_names.csv"))
  
- 		specimen_dat <- merge(x, ROMS_bot_temp_yr, by = "year")
- }
- 
- spec_temp_dat <- lapply(df_list_wrangled, join_func)
