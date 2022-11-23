@@ -129,143 +129,198 @@
   
   # compare models via plotting
   
+	
+	# add dat object to all gamm4 objects
+	base_mod_KO$gam$data <- lagdat
+	temp_mod_KO$gam$data <- lagdat
+	temp_age_int_mod_KO$gam$data <- lagdat
+
+	# extract conditional smooths for brms models
+	base_mod_ms <- conditional_smooths(base_mod_brms_KO)
+	base_mod_brms_plot <- plot(base_mod_ms)
+
+	temp_mod_ms <- conditional_smooths(temp_mod_brms_KO)
+	temp_mod_brms_plot <- plot(temp_mod_ms)
+
+	temp_age_mod_ms <- conditional_smooths(temp_age_int_mod_brms_KO)
+	temp_age_mod_brms_plot <- plot(temp_age_mod_ms)
+
+	# theme_set
+	theme_set(
+		theme_classic() +
+		theme(
+			plot.title = element_text(size = 8),
+			axis.title = element_text(size = 6),
+			axis.text = element_text(size = 4)))
+	
+	### julian day ###
+
 	## gamm4 ##
 	
-	# need to add the data to the gam object first
-	
-	## base mod ##
-	base_mod_KO$gam$data <- lagdat
+	# base mod #
 
-	# julian day
 	base_mod_jday_gamm4_plot <- visreg(base_mod_KO$gam, "julian", gg = TRUE, partial = FALSE, rug = FALSE) +
 		ylab("partial effect log\nscaled weight-at-age") +
 		xlab("julian day") +
-		labs(subtitle = "gamm4") +
-		ylim(-1.25, 0.3) +
-		theme_classic()
+		ggtitle("base model") +
+		ylim(-1.26, 0.31) 
 	
-	ggplot_build(base_mod_jday_gamm4_plot)$layout$panel_scales_y[[1]]$range$range
-	ggplot_build(base_mod_jday_gamm4_plot)$layout$panel_scales_x[[1]]$range$range
+	#ggplot_build(base_mod_jday_gamm4_plot)$layout$panel_scales_y[[1]]$range$range
+	#ggplot_build(base_mod_jday_gamm4_plot)$layout$panel_scales_x[[1]]$range$range
 
+	# temp mod #
 	
-	# lat lon -- COME BACK TO THIS
-	#base_mod_latlon_gamm4_plot <- visreg(base_mod_KO$gam, "LONGITUDE,LATITUDE", gg = TRUE,
-	#																		  partial = FALSE, rug = FALSE) +
-	#	ylab("partial effect log\nscaled weight-at-age") +
-	#	xlab("julian day") +
-	#	theme_classic()
-	
-	## temp mod ##
-	temp_mod_KO$gam$data <- lagdat
-	
-	# julian day
 	temp_mod_jday_gamm4_plot <- visreg(temp_mod_KO$gam, "julian", gg = TRUE,
 																		  partial = FALSE, rug = FALSE) +
 		ylab("partial effect log\nscaled weight-at-age") +
 		xlab("julian day") +
-		theme_classic()
-
-	# sst
-	temp_mod_sst_gamm4_plot <- visreg(temp_mod_KO$gam, "sst.amj", gg = TRUE,
-																		 partial = FALSE, rug = FALSE) +
-		ylab("partial effect log\nscaled weight-at-age") +
-		xlab("SST") +
-		theme_classic()
+		ggtitle("temp model") +
+		ylim(-1.26, 0.31) 
 	
-	## temp age int mod ##
-	temp_age_int_mod_KO$gam$data <- lagdat
+	# temp age int mod #
 	
-	# julian day
 	temp_age_int_jday_gamm4_plot <- visreg(temp_age_int_mod_KO$gam, "julian", gg = TRUE,
 																				  partial = FALSE, rug = FALSE) +
 		ylab("partial effect log\nscaled weight-at-age") +
 		xlab("julian day") +
-		theme_classic()
+		ggtitle("temp age int model") +
+		ylim(-1.26, 0.31) 
 
-	# sst
-	temp_mod_sst_gamm4_plot <- visreg(temp_age_int_mod_KO$gam, "sst.amj", by = "AGE", gg = TRUE,
-																		 partial = FALSE, rug = FALSE) +
-		ylab("partial effect log\nscaled weight-at-age") +
-		xlab("SST") +
-		theme_classic()
-	
-  # for models fitted with gamm4, model object is both a gam and mer, we need the gam
-	
+	#ggplot_build(temp_age_int_jday_gamm4_plot)$layout$panel_scales_y[[1]]$range$range
+	#ggplot_build(temp_age_int_jday_gamm4_plot)$layout$panel_scales_x[[1]]$range$range
+
 	## brms ##
-	
-	# base mod
-	base_mod_ms <- conditional_smooths(base_mod_brms_KO)
-	base_mod_brms_plot <- plot(base_mod_ms)
-	
+
+	# base mod #
 	base_mod_brms_jday <- base_mod_brms_plot[[2]] +
 		ylab("partial effect log\nscaled weight-at-age") +
 		xlab("julian day") +
-		labs(subtitle = "brms") +
-		ylim(-1.25, 0.3) +
-		theme_classic()
+		ylim(-1.26, 0.31) 
 	
-	ggplot_build(base_mod_brms_jday)$layout$panel_scales_y[[1]]$range$range
-	ggplot_build(base_mod_brms_jday)$layout$panel_scales_x[[1]]$range$range
+	#ggplot_build(base_mod_brms_jday)$layout$panel_scales_y[[1]]$range$range
+	#ggplot_build(base_mod_brms_jday)$layout$panel_scales_x[[1]]$range$range
 
-		
-	base_mod_brms_latlon <- base_mod_brms_plot[[1]] +
-		theme_classic()
-	
-	pp_check(base_mod_brms_KO)
-	pp_check(base_mod_brms_KO, type = "ecdf_overlay")
-	
-	# temp mod
-	temp_mod_ms <- conditional_smooths(temp_mod_brms_KO)
-	temp_mod_brms_plot <- plot(temp_mod_ms)
-	
+	# temp mod #
 	temp_mod_brms_jday <- temp_mod_brms_plot[[3]] +
 		ylab("partial effect log\nscaled weight-at-age") +
 		xlab("julian day") +
-		theme_classic()
+		ylim(-1.26, 0.31) 
+	
+	#ggplot_build(temp_mod_brms_jday)$layout$panel_scales_y[[1]]$range$range
+	#ggplot_build(temp_mod_brms_jday)$layout$panel_scales_x[[1]]$range$range
+
+	# temp age int mod #
+		
+	temp_age_mod_brms_jday_plot <- temp_age_mod_brms_plot[[3]] +
+		ylab("partial effect log\nscaled weight-at-age") +
+		xlab("julian day") +
+		ylim(-1.26, 0.31) 
+	
+	#ggplot_build(temp_age_mod_brms_jday_plot)$layout$panel_scales_y[[1]]$range$range
+	#ggplot_build(temp_age_mod_brms_jday_plot)$layout$panel_scales_x[[1]]$range$range
+
+	# plot together
+	
+	jday_top <-
+		 wrap_elements(
+		 	grid::textGrob('gamm4')) + base_mod_jday_gamm4_plot + 
+		 	temp_mod_jday_gamm4_plot + temp_age_int_jday_gamm4_plot +
+		  plot_layout(nrow = 1)
+
+	jday_bot <-
+		 wrap_elements(
+		 	grid::textGrob('brms')) + base_mod_brms_jday + 
+		 	temp_mod_brms_jday + temp_age_mod_brms_jday_plot +
+		  plot_layout(nrow = 1)
+
+	jday_KO_text <- jday_top/jday_bot
+		
+	ggsave(file = here("./output/plots/jday_KO_comparison.pdf"),
+				 jday_KO_text)
+	
+	
+	## sst ##
+	
+	# can only compare temp mods
+	
+	# gamm4 #
+	
+	temp_mod_sst_gamm4_plot <- visreg(temp_mod_KO$gam, "sst.amj", gg = TRUE,
+																		 partial = FALSE, rug = FALSE) +
+		ylab("partial effect log\nscaled weight-at-age") +
+		xlab("SST") +
+		labs(title = "temp mod") +
+		ylim(-0.87, 0.34) +
+		annotate(geom = "text", 
+						 x = 2.05, y = 0.34,
+						 label = "gamm4",
+						 size = 2)
+	
+	#ggplot_build(temp_mod_sst_gamm4_plot)$layout$panel_scales_y[[1]]$range$range
+	#ggplot_build(temp_mod_sst_gamm4_plot)$layout$panel_scales_x[[1]]$range$range
+
+	# brms # 
 	
 	temp_mod_brms_sst <- temp_mod_brms_plot[[1]] +
 		ylab("partial effect log\nscaled weight-at-age") +
 		xlab("SST") +
-		theme_classic()
+		ylim(-0.87, 0.34) +
+		annotate(geom = "text", 
+						 x = 2.05, y = 0.34,
+						 label = "brms",
+						 size = 2)
 	
-	temp_mod_brms_latlon <- temp_mod_brms_plot[[2]] 
+	#ggplot_build(temp_mod_brms_sst)$layout$panel_scales_y[[1]]$range$range
+	#ggplot_build(temp_mod_brms_sst)$layout$panel_scales_x[[1]]$range$range
 
-	# brms mod checks
-	pp_check(temp_mod_brms_KO)
-	pp_check(temp_mod_brms_KO, type = "ecdf_overlay")
+	sst_KO <- temp_mod_sst_gamm4_plot/temp_mod_brms_sst
+		
+	ggsave(file = here("./output/plots/sst_KO_comparison.pdf"),
+				 sst_KO,
+				 width = 2.5, height = 5, units = "in")
 	
 	
-	# temp age int model
-	temp_age_mod_ms <- conditional_smooths(temp_age_int_mod_brms_KO)
-	temp_age_mod_brms_plot <- plot(temp_age_mod_ms)
+	## sst by age ##
 	
-	temp_age_mod_brms_jday_plot <- temp_age_mod_brms_plot[[3]] +
-		ylab("partial effect log\nscaled weight-at-age") +
-		xlab("julian day") +
-		theme_classic()
+	# can only compare temp age int mods
 	
-	temp_age_mod_brms_sst_plot <- temp_age_mod_brms_plot[[1]] +
+	# gamm4 #
+	
+	temp_age_mod_sst_gamm4_plot <- visreg(temp_age_int_mod_KO$gam, "sst.amj", by = "AGE",
+																				gg = TRUE, partial = FALSE, rug = FALSE) +
 		ylab("partial effect log\nscaled weight-at-age") +
 		xlab("SST") +
-		theme_classic()
+		labs(title = "temp age int mod: gamm4") +
+		facet_wrap(~AGE) +
+		ylim(-1.5, 1) +
+		theme_update(
+			strip.text = element_text(size = 5),
+			strip.background = element_blank(),
+			panel.border = element_rect(color = "black", fill = NA))
 	
-	temp_age_mod_brms_latlon_plot <- temp_age_mod_brms_plot[[2]] 
-	
-	# brms mod checks
-	pp_check(temp_age_int_mod_brms_KO)
-	pp_check(temp_age_int_mod_brms_KO, type = "ecdf_overlay")
+	#ggplot_build(temp_mod_sst_gamm4_plot)$layout$panel_scales_y[[1]]$range$range
+	#ggplot_build(temp_mod_sst_gamm4_plot)$layout$panel_scales_x[[1]]$range$range
 
-	# put together
+	# brms # 
 	
-	# base mod julian day effect
+	temp_age_mod_brms_sst <- temp_age_mod_brms_plot[[1]] +
+		ylab("partial effect log\nscaled weight-at-age") +
+		xlab("SST") +
+		facet_wrap(~AGE) +
+		labs(title = "temp age int mod: brms") +
+		ylim(-1.5, 1) +
+		theme_update(
+			strip.text = element_text(size = 5),
+			strip.background = element_blank(),
+			panel.border = element_rect(color = "black", fill = NA))
 	
-	base_mod_jday_plot <- (base_mod_jday_gamm4_plot + base_mod_brms_jday)
+	
+	#ggplot_build(temp_mod_brms_sst)$layout$panel_scales_y[[1]]$range$range
+	#ggplot_build(temp_mod_brms_sst)$layout$panel_scales_x[[1]]$range$range
 
-	base_mod_jday_plot_form <- base_mod_jday_plot +
-	 ggtitle("base model (log_sc_wt ~ jday)") +
-	 theme(
-	 	plot.title = element_text(hjust = -28))
-	
-	ggsave(file = here("./output/plots/base_mod_KO_comparison.pdf"),
-				 base_mod_jday_plot_form)
+	sst_age_KO <- temp_age_mod_sst_gamm4_plot + temp_age_mod_brms_sst
+		
+	ggsave(file = here("./output/plots/sst_age_KO_comparison.pdf"),
+				 sst_age_KO)
+				 
 	
