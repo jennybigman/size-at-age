@@ -1,4 +1,4 @@
-# gams using gamm4() 
+# gams using age as a covariate
 
 	#### PCOD ####
 	
@@ -31,29 +31,29 @@
 	# scale weight by age
 	#scale.dat <- plyr::ddply(pollock_dat, "age", transform, sc.weight = scale(WEIGHT))
 
-	# 1. log, scaled weight at age ~  julian day + random effects of cohort +  haul nested within year
-	base_mod_pcod <- gamm4(log_wt_scaled ~ t2(latitude, longitude) + s(julian_day),
-										random = ~ (1|cohort) + (1|year/haul),
-										data = pcod_dat)
+	# 1. log weight  ~  age + julian day + random effects of cohort +  haul nested within year
+	base_mod_pcod_age <- gamm4(log_wt ~ age_f + t2(latitude, longitude) + s(julian_day),
+											 random = ~ (1|cohort) + (1|year/haul),
+											 data = pcod_dat)
 	
-  AICc(base_mod_pcod$mer)
+  AICc(base_mod_pcod_age$mer)
  
 	
-  # 2. log, scaled weight at age ~  temp + julian day + random effects of cohort +  haul nested within year
-	temp_mod_pcod <- gamm4(log_wt_scaled ~  s(mean_sum_temp) + t2(latitude, longitude) + s(julian_day),
+  # 2. log weight  ~ age + temp + julian day + random effects of cohort +  haul nested within year
+	temp_mod_pcod_age <- gamm4(log_wt ~  age_f + s(mean_sum_temp) + t2(latitude, longitude) + s(julian_day),
 										random = ~ (1|cohort) + (1|year/haul),
 										data = pcod_dat)
 	
-	AICc(temp_mod_pcod$mer)
+	AICc(temp_mod_pcod_age$mer)
 	
 
-  # 3. log, scaled weight at age ~  + age*temp + julian day + random effects of cohort +  haul nested within year
-	temp_age_int_mod_pcod <- gamm4(log_wt_scaled ~  s(mean_sum_temp, by = age) + t2(latitude, longitude) +
+  # 3. log weight ~  + age*temp + julian day + random effects of cohort +  haul nested within year
+	temp_age_int_mod_pcod_age <- gamm4(log_wt ~  s(mean_sum_temp, by = age_f) + t2(latitude, longitude) +
 														s(julian_day),
 													  random = ~ (1|cohort) + (1|year/haul),
 														data = pcod_dat)
 
-  AICc(temp_age_int_mod_pcod$mer)
+  AICc(temp_age_int_mod_pcod_age$mer)
  
   #save(base_mod_pcod, file = here("./output/base_mod_pcod.rds"))
   #save(temp_mod_pcod, file = here("./output/temp_mod_pcod.rds"))
@@ -174,12 +174,3 @@
 													  random = ~ (1|cohort) + (1|year/haul),
 														data = yfinsole_dat)
 	AICc(temp_age_int_mod_yfin$mer)
-
-	
-	#### using the glmm output ####
-	
-	# pcod (top model: temp_age_int_mod_pcod)
-	pcod_bm <- temp_age_int_mod_pcod_age$mer
-
-	predict.glm(pcod_bm)
-	

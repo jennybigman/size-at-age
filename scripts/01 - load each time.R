@@ -8,6 +8,8 @@
 	library(visreg)
 	library(data.table)
 	library(gamm4)
+	library(tidymv)
+	library(brms)
 
 	# yearly-averaged temp data
 	ROMS_bot_temp_yr <- fread(here("./data/ROMS_bot_temp_yr.csv")) %>%
@@ -28,7 +30,6 @@
 	
 	# put each species df into a list
 	specimen_dat$haul <- specimen_dat$haul.x
-	specimen_dat$age_f <- as.factor(specimen_dat$age)
 	specimen_dat$cohort_f <- as.factor(specimen_dat$cohort_f)
 	
 
@@ -45,3 +46,9 @@
 	}
  
 	spec_temp_dat <- lapply(specimen_dat_list, join_func)
+
+	# beepr function shortcut
+	
+	beep <- function(x = "fanfare"){
+		beepr::beep(x)
+	}

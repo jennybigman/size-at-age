@@ -1,3 +1,5 @@
+# code to run Krista's models in Oke et al 2022
+
 	library(here)
 	library(tidyverse)
 	library(lme4)
@@ -11,117 +13,259 @@
 	library(mgcViz)
 	library(lme4)
 	library(MuMIn)
+	library(brms)
+  library(broom)
+	library(tidybayes)
+	
+	#### read in Krista's data ####
+	lagdat <- read_csv(here("./data/Krista data/lagdat.csv"))
+	
+	lagdat$cohort <- lagdat$YEAR - lagdat$AGE
 
-	#### data wrangling ####
-	
-	# read data 
-	
-	# from github
-	# pollock_dat <- read_csv("https://raw.githubusercontent.com/mikelitzow/bold-new-pollock/master/data/survey%20data/Litzow_pollock_02032021.csv")
+	table(lagdat$AGE)
+	lagdat <- lagdat[which(lagdat$AGE<16),] #was asked if borrowing info across yrs would allow
+	#more ages to be included
 
-	# read from file
-	pollock_dat <- read_csv(here("./data/Krista data/pollock_ebs_dat.csv"))
+	lagdat$AGE <- as.factor(lagdat$AGE)
+	lagdat$cohort <- as.factor(lagdat$cohort)
 	
-	# SST dat
-	clim_dat <- read_csv(file = here("./data/Krista data/climate data.csv"))
-	
-	# change all column names to lower
-	names(pollock_dat) <- tolower(names(pollock_dat))
-	
-	# format dates for github data
-	#pollock_dat$date <- mdy(pollock_dat$tow_date)
-	#pollock_dat$month <- month(pollock_dat$date) # month of year
-	#pollock_dat$week <- week(pollock_dat$date) # week of year
-	#pollock_dat$year <- year(pollock_dat$date)
-	#pollock_dat$julian_day <- yday(pollock_dat$date)
-	
-	# calculate cohort
-	pollock_dat <- pollock_dat %>%
-		mutate(cohort = year - age)
-	
-	# turn cohort and age into factors for the model and log variables
-	pollock_dat <- pollock_dat %>%
-		filter(weight > 0) %>%
-		mutate(age_f = as.factor(age),
-					 cohort_f = as.factor(cohort),
-					 log_wt = log10(weight))
-	
-	# scale weights for each age
-	pollock_dat <- pollock_dat %>%
-		group_by(age_f) %>%
-		mutate(mean_wt_age = mean(log_wt),
-					 sd_wt_age = sd(log_wt))
-	
-	pollock_dat <- pollock_dat %>%
-		group_by(age_f) %>%
-		rowwise() %>%
-		mutate(log_wt_scaled = (log_wt - mean_wt_age)/sd_wt_age)
-	
-	# trim to 1999 forward & EBS only
-	yrs_keep <- 1999:2019
-	
-	pollock_dat <- pollock_dat %>%
-		filter(year %in% yrs_keep) 
-	
-	# filter by age following Oke et al. 2022
-	pollock_dat <- pollock_dat  %>% filter(between(age, 1, 15))
-
-	# SST
-	clim_dat <- clim_dat %>%
-		filter(year %in% yrs_keep) %>%
-		select(year, south.sst.amj)
-	
-	# join SST and data together
-	pollock_dat <- merge(pollock_dat, clim_dat, by = "year")
-	
-	# plot
-	ggplot(pollock_dat, aes(x = south.sst.amj, y = log_wt_scaled)) +
+	# prelim plots (my addition)
+	ggplot(lagdat, aes(x = sst.amj, y = log_sc_weight)) +
 		geom_point() +
-		facet_wrap(~ age_f)
+		facet_wrap(~AGE)
 
-	# scale weight by age
-	#scale.dat <- plyr::ddply(pollock_dat, "age", transform, sc.weight = scale(WEIGHT))
-
+	#### GAMs using gamm4 (package used in paper) ####
 	# 1. log, scaled weight at age ~  julian day + random effects of cohort +  haul nested within year
-	base_mod <- gamm4(log_wt_scaled ~ t2(latitude, longitude) + s(julian),
-										random = ~ (1|cohort) + (1|year/haul),
-										data = pollock_dat)
+	base_mod_KO <- gamm4(log_sc_weight ~  t2(LONGITUDE, LATITUDE) + s(julian, k = 4) +
+                  		 s(cohort, bs="re"),
+                			 random=~(1|YEAR/HAUL), data=lagdat, REML=TRUE) 
 	
-	summary(base_mod$gam)
-	summary(base_mod$mer)	
-  gam.check(base_mod$gam)	
-  AICc(base_mod$mer)
- 
-	
-  # 2. log, scaled weight at age ~  temp + julian day + random effects of cohort +  haul nested within year
-	temp_mod <- gamm4(log_wt_scaled ~  s(south.sst.amj) + t2(latitude, longitude) + s(julian),
-										random = ~ (1|cohort) + (1|year/haul),
-										data = pollock_dat)
-	
-	
-	summary(temp_mod$gam)
-  AICc(temp_mod$mer)
-	
+	#summary(base_mod_KO$gam)
+	#summary(base_mod_KO$mer)	
+  #gam.check(base_mod_KO$gam)	
+  #AICc(base_mod_KO$mer)
 
-  # 3. log, scaled weight at age ~  + age*temp + julian day + random effects of cohort +  haul nested within year
-	temp_age_int_mod <- gamm4(log_wt_scaled ~  s(south.sst.amj, by = age) + t2(latitude, longitude) +
-														s(julian),
-													  random = ~ (1|cohort) + (1|year/haul),
-														data = pollock_dat)
+  # 2. log, scaled weight at age ~  temp + julian day + random effects of cohort +  haul nested within year
+	temp_mod_KO <- gamm4(log_sc_weight ~  s(sst.amj, k=4) +  t2(LONGITUDE, LATITUDE) + s(julian, k = 4) +
+                   s(cohort, bs="re"),
+                	 random=~(1|YEAR/HAUL), data=lagdat, REML=TRUE) 
 	
-	summary(temp_age_int_mod$gam)
-	summary(temp_age_int_mod$mer)	
-  gam.check(temp_age_int_mod$gam)	
-  AICc(temp_age_int_mod$mer)
+	
+	#summary(temp_mod_KO$gam)
+  #AICc(temp_mod_KO$mer)
+	
+  # 3. log, scaled weight at age ~  + age*temp + julian day + random effects of cohort +  haul nested within year
+	temp_age_int_mod_KO <- gamm4(log_sc_weight ~  s(sst.amj, by=AGE, k=4) + t2(LONGITUDE, LATITUDE) + s(julian, k = 4) +
+                         s(cohort, bs="re"),
+                         random=~(1|YEAR/HAUL) , data=lagdat, REML=TRUE) 
+	
+	#summary(temp_age_int_mod_KO$gam)
+	#summary(temp_age_int_mod_KO$mer)	
+  #gam.check(temp_age_int_mod_KO$gam)	
+  #AICc(temp_age_int_mod_KO$mer)
  
+	# store data in gam obj
+	temp_age_int_mod_KO$gam$data <- lagdat
+
   #### save and load model ouput ####
   
   # save
-  save(base_mod, file = here("./output/model output/pollock/base_mod_Krista.rda"))
-  save(temp_mod, file = here("./output/model output/pollock/temp_mod_Krista.rds"))
-  save(temp_age_int_mod, file = here("./output/model output/pollock/temp_age_int_mod_Krista.rds"))
+  saveRDS(base_mod_KO, 
+  				file = here("./output/model output/pollock/base_mod_KO.rds"))
+  saveRDS(temp_mod_KO, 
+  				file = here("./output/model output/pollock/temp_mod_KO.rds"))
+  saveRDS(temp_age_int_mod_KO, 
+  				file = here("./output/model output/pollock/temp_age_int_mod_KO.rds"))
   
   # load
-  base_mod <- load(file = here("./output/model output/pollock/base_mod_Krista.rda"))
-  temp_mod <- load(file = here("./output/model output/pollock/temp_mod_Krista.rds"))
-  temp_age_int_mod <- load(file = here("./output/model output/pollock/temp_age_int_mod_Krista.rds"))
+  base_mod_KO <- readRDS("~/Dropbox/NOAA AFSC Postdoc/temp, growth, size project/size-at-age/output/model output/pollock/base_mod_KO.rds")
+	temp_mod_KO <- readRDS("~/Dropbox/NOAA AFSC Postdoc/temp, growth, size project/size-at-age/output/model output/pollock/temp_mod_KO.rds")
+	temp_age_int_mod_KO <- readRDS("~/Dropbox/NOAA AFSC Postdoc/temp, growth, size project/size-at-age/output/model output/pollock/temp_age_int_mod_KO.rds")
+	
+	#### GAMs using brms ####
+
+  # 1. log, scaled weight at age ~  julian day + random effects of cohort +  haul nested within year
+  base_mod_brms_KO <- brm(log_sc_weight ~  t2(LONGITUDE, LATITUDE) + s(julian, k = 4) +
+                  			  (1|cohort) + (1|YEAR/HAUL),
+                					data = lagdat, 
+                					family = gaussian(),
+                					save_all_pars = TRUE,
+                					warmup = 1000, iter = 5000,
+                					chains = 4, cores = 4) 
+  
+  saveRDS(base_mod_brms_KO, 
+  				file = here("./output/model output/pollock/base_mod_brms_KO.rds"))
+  
+  # 2. log, scaled weight at age ~  temp + julian day + random effects of cohort +  haul nested within year
+	temp_mod_brms_KO <- brm(log_sc_weight ~  s(sst.amj, k=4) + t2(LONGITUDE, LATITUDE) + 
+												  s(julian, k = 4) + (1|cohort) + (1|YEAR/HAUL),
+													data = lagdat,
+													family = gaussian(),
+                					save_all_pars = TRUE,
+                					warmup = 1000, iter = 5000,
+                					chains = 4, cores = 4) 
+  
+  saveRDS(temp_mod_brms_KO, 
+  				file = here("./output/model output/pollock/temp_mod_brms_KO.rds"))
+
+  # 3. log, scaled weight at age ~  + age*temp + julian day + random effects of cohort +  haul nested within year
+	temp_age_int_mod_brms_KO <- brm(log_sc_weight ~  s(sst.amj, by=AGE, k=4) + 
+																	t2(LONGITUDE, LATITUDE) + 
+												  		    s(julian, k = 4) + (1|cohort) + (1|YEAR/HAUL),
+																	data = lagdat,
+																	family = gaussian(),
+                									save_all_pars = TRUE,
+                									warmup = 1000, iter = 5000,
+                									chains = 4, cores = 4) 
+		
+  saveRDS(temp_age_int_mod_brms_KO, 
+  				file = here("./output/model output/pollock/temp_age_int_mod_brms_KO.rds"))
+
+  # load
+	base_mod_brms_KO <- readRDS("~/Dropbox/NOAA AFSC Postdoc/temp, growth, size project/size-at-age/output/model output/pollock/base_mod_brms_KO.rds")
+	temp_mod_brms_KO <- readRDS("~/Dropbox/NOAA AFSC Postdoc/temp, growth, size project/size-at-age/output/model output/pollock/temp_mod_brms_KO.rds")
+	temp_age_int_mod_brms_KO <- readRDS("~/Dropbox/NOAA AFSC Postdoc/temp, growth, size project/size-at-age/output/model output/pollock/temp_age_int_mod_brms_KO.rds")
+
+  
+  # compare models via plotting
+  
+	## gamm4 ##
+	
+	# need to add the data to the gam object first
+	
+	## base mod ##
+	base_mod_KO$gam$data <- lagdat
+
+	# julian day
+	base_mod_jday_gamm4_plot <- visreg(base_mod_KO$gam, "julian", gg = TRUE, partial = FALSE, rug = FALSE) +
+		ylab("partial effect log\nscaled weight-at-age") +
+		xlab("julian day") +
+		labs(subtitle = "gamm4") +
+		ylim(-1.25, 0.3) +
+		theme_classic()
+	
+	ggplot_build(base_mod_jday_gamm4_plot)$layout$panel_scales_y[[1]]$range$range
+	ggplot_build(base_mod_jday_gamm4_plot)$layout$panel_scales_x[[1]]$range$range
+
+	
+	# lat lon -- COME BACK TO THIS
+	#base_mod_latlon_gamm4_plot <- visreg(base_mod_KO$gam, "LONGITUDE,LATITUDE", gg = TRUE,
+	#																		  partial = FALSE, rug = FALSE) +
+	#	ylab("partial effect log\nscaled weight-at-age") +
+	#	xlab("julian day") +
+	#	theme_classic()
+	
+	## temp mod ##
+	temp_mod_KO$gam$data <- lagdat
+	
+	# julian day
+	temp_mod_jday_gamm4_plot <- visreg(temp_mod_KO$gam, "julian", gg = TRUE,
+																		  partial = FALSE, rug = FALSE) +
+		ylab("partial effect log\nscaled weight-at-age") +
+		xlab("julian day") +
+		theme_classic()
+
+	# sst
+	temp_mod_sst_gamm4_plot <- visreg(temp_mod_KO$gam, "sst.amj", gg = TRUE,
+																		 partial = FALSE, rug = FALSE) +
+		ylab("partial effect log\nscaled weight-at-age") +
+		xlab("SST") +
+		theme_classic()
+	
+	## temp age int mod ##
+	temp_age_int_mod_KO$gam$data <- lagdat
+	
+	# julian day
+	temp_age_int_jday_gamm4_plot <- visreg(temp_age_int_mod_KO$gam, "julian", gg = TRUE,
+																				  partial = FALSE, rug = FALSE) +
+		ylab("partial effect log\nscaled weight-at-age") +
+		xlab("julian day") +
+		theme_classic()
+
+	# sst
+	temp_mod_sst_gamm4_plot <- visreg(temp_age_int_mod_KO$gam, "sst.amj", by = "AGE", gg = TRUE,
+																		 partial = FALSE, rug = FALSE) +
+		ylab("partial effect log\nscaled weight-at-age") +
+		xlab("SST") +
+		theme_classic()
+	
+  # for models fitted with gamm4, model object is both a gam and mer, we need the gam
+	
+	## brms ##
+	
+	# base mod
+	base_mod_ms <- conditional_smooths(base_mod_brms_KO)
+	base_mod_brms_plot <- plot(base_mod_ms)
+	
+	base_mod_brms_jday <- base_mod_brms_plot[[2]] +
+		ylab("partial effect log\nscaled weight-at-age") +
+		xlab("julian day") +
+		labs(subtitle = "brms") +
+		ylim(-1.25, 0.3) +
+		theme_classic()
+	
+	ggplot_build(base_mod_brms_jday)$layout$panel_scales_y[[1]]$range$range
+	ggplot_build(base_mod_brms_jday)$layout$panel_scales_x[[1]]$range$range
+
+		
+	base_mod_brms_latlon <- base_mod_brms_plot[[1]] +
+		theme_classic()
+	
+	pp_check(base_mod_brms_KO)
+	pp_check(base_mod_brms_KO, type = "ecdf_overlay")
+	
+	# temp mod
+	temp_mod_ms <- conditional_smooths(temp_mod_brms_KO)
+	temp_mod_brms_plot <- plot(temp_mod_ms)
+	
+	temp_mod_brms_jday <- temp_mod_brms_plot[[3]] +
+		ylab("partial effect log\nscaled weight-at-age") +
+		xlab("julian day") +
+		theme_classic()
+	
+	temp_mod_brms_sst <- temp_mod_brms_plot[[1]] +
+		ylab("partial effect log\nscaled weight-at-age") +
+		xlab("SST") +
+		theme_classic()
+	
+	temp_mod_brms_latlon <- temp_mod_brms_plot[[2]] 
+
+	# brms mod checks
+	pp_check(temp_mod_brms_KO)
+	pp_check(temp_mod_brms_KO, type = "ecdf_overlay")
+	
+	
+	# temp age int model
+	temp_age_mod_ms <- conditional_smooths(temp_age_int_mod_brms_KO)
+	temp_age_mod_brms_plot <- plot(temp_age_mod_ms)
+	
+	temp_age_mod_brms_jday_plot <- temp_age_mod_brms_plot[[3]] +
+		ylab("partial effect log\nscaled weight-at-age") +
+		xlab("julian day") +
+		theme_classic()
+	
+	temp_age_mod_brms_sst_plot <- temp_age_mod_brms_plot[[1]] +
+		ylab("partial effect log\nscaled weight-at-age") +
+		xlab("SST") +
+		theme_classic()
+	
+	temp_age_mod_brms_latlon_plot <- temp_age_mod_brms_plot[[2]] 
+	
+	# brms mod checks
+	pp_check(temp_age_int_mod_brms_KO)
+	pp_check(temp_age_int_mod_brms_KO, type = "ecdf_overlay")
+
+	# put together
+	
+	# base mod julian day effect
+	
+	base_mod_jday_plot <- (base_mod_jday_gamm4_plot + base_mod_brms_jday)
+
+	base_mod_jday_plot_form <- base_mod_jday_plot +
+	 ggtitle("base model (log_sc_wt ~ jday)") +
+	 theme(
+	 	plot.title = element_text(hjust = -28))
+	
+	ggsave(file = here("./output/plots/base_mod_KO_comparison.pdf"),
+				 base_mod_jday_plot_form)
+	
