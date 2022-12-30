@@ -10,22 +10,32 @@
 	library(gamm4)
 	library(tidymv)
 	library(brms)
+	library(mgcViz)
+	library(patchwork)
+	library(grid)
+	library(gratia)
 
-	# yearly-averaged temp data
+	# yearly-averaged hindcast temp output
 	ROMS_bot_temp_yr <- fread(here("./data/ROMS_bot_temp_yr.csv")) %>%
 		rename(yr_mean_temp = mean_temp)
 	
-	# summer averaged temp data
+	# summer averaged temp output
 	ROMS_sum_temp_avg <- fread(here("./data/ROMS_sum_temp_avg.csv"))
 
 	# join temp data
-	ROMS_temps <- merge(ROMS_bot_temp_yr, ROMS_sum_temp_avg,
+	ROMS_hind_temps <- merge(ROMS_bot_temp_yr, ROMS_sum_temp_avg,
 											by = c("year"))
 	
 	
 	# specimen data
 	specimen_dat <- read.csv(file = here("./data/df_list_wrangled_names.csv"))
 
+	# how many NAs per species do I have
+	spec_dat_0 <- specimen_dat %>%
+		dplyr::select(species, age) %>%
+		group_by(species) %>%
+		summarise(NAs = sum(is.na(age)))
+	
 	# join specimen data and ROMS temp
 	
 	# put each species df into a list
@@ -42,7 +52,7 @@
 	# merge with temp
 	join_func <- function(x){
  
- 		specimen_dat <- merge(x, ROMS_temps, by = "year")
+ 		specimen_dat <- merge(x, ROMS_hind_temps, by = "year")
 	}
  
 	spec_temp_dat <- lapply(specimen_dat_list, join_func)

@@ -153,3 +153,19 @@
 		summarize(mean_sum_temp = mean(temp))
 
 	fwrite(ROMS_sum_temp_avg, "./data/ROMS_sum_temp_avg.csv")
+
+	
+	#### temps from ACLIM ####
+	
+	load("../../ACLIM2//Data/out/K20P19_CMIP6/allEBS_means/ACLIM_weekly_hist_mn.Rdata")
+	load("../../ACLIM2/Data/out/K20P19_CMIP6/allEBS_means/ACLIM_weekly_hind_mn.Rdata")
+  load("../../ACLIM2//Data/out/K20P19_CMIP6/allEBS_means/ACLIM_weekly_fut_mn.Rdata")
+  
+  temp_hist <- ACLIM_weekly_hind %>%
+    filter(var == "temp_bottom5m")
+  	
+  temp_hind <- ACLIM_weekly_hind %>%
+    filter(var == "temp_bottom5m")
+  
+  temp_proj <- ACLIM_weekly_fut %>%
+    filter(var == "temp_bottom5m")

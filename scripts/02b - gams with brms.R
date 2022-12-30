@@ -1,103 +1,10 @@
 # gamms with brms
 
-	#### PCOD ####
-	
-	# data wrangling
-	pcod_dat <- spec_temp_dat[[2]] %>%
-		rename(julian_day = jday)
-	
-	pcod_dat <- pcod_dat  %>% filter(between(age_f, 1, 10))
-
-	pcod_dat$age_f <- as_factor(pcod_dat$age)
-	
-	pcod_dat <- pcod_dat %>%
-		group_by(age_f) %>%
-		mutate(mean_wt_age = mean(log_wt),
-					 sd_wt_age = sd(log_wt))
-	
-	pcod_dat <- pcod_dat %>%
-		group_by(age_f) %>%
-		rowwise() %>%
-		mutate(log_wt_scaled = (log_wt - mean_wt_age)/sd_wt_age)
-	
-	pcod_age_sum <- pcod_dat %>%
-		group_by(age_f) %>%
-		summarize(n())
-	
-	# trim to 1999 forward & EBS only
-	yrs_keep <- 1999:2019
-	
-	pcod_dat <- pcod_dat %>%
-		filter(year %in% yrs_keep) 
-
-	# scale weight by age
-	#scale.dat <- plyr::ddply(pollock_dat, "age", transform, sc.weight = scale(WEIGHT))
-
-	# 1. weight ~ age + temp
-	
-	#get_prior(log_wt ~ age_f + mean_sum_temp + 
-	#													(1|year/haul) + (1|julian_day),
-	#													data = pcod_dat, family = gaussian())
-	
-	pcod_temp_age_gam <- brm(log_wt ~ age_f + s(mean_sum_temp) + t2(latitude, longitude) +
-													(1|year/haul) + (1|julian_day),
-													data = pcod_dat,
-													family = gaussian(),
-													save_all_pars = TRUE,
-                  				warmup = 1000, iter = 5000, chains = 4, cores = 4)
-														
-
-  # 2. weight ~ age * temp
-	pcod_temp_int_age_gam <- brm(log_wt ~ age_f + s(mean_sum_temp, by = age_f) + t2(latitude, longitude) +
-													(1|year/haul) + (1|julian_day),
-													data = pcod_dat,
-													family = gaussian(),
-													save_all_pars = TRUE,
-                  				warmup = 1000, iter = 5000, cores = 4, chains = 4)
-	
-	# compare to spatial smoother by year or age 
-	# temp occupied -- more refined temp metric based on where fish actually are (e.g., nearshore -- mean temp < 100 m depth )
-	
-  # save models
-	save(pcod_temp_age_gam, file = "./output/model output/pcod_temp_age_gam.rda")
-	save(pcod_temp_int_age_gam, file = "./output/model output/pcod_temp_int_age_gam.rda")
-	
-	# load models 
-	#load(file = "./output/model output/pcod_temp_age_gam.rda")
-	#load(file = "./output/model output/pcod_temp_int_age_gam.rda")
-
-	
-	# compare models
-	loo(pcod_temp_age_gam) #looic = -17132.5 #elpd_loo = 8566.3
-	loo(pcod_temp_int_age_gam) #looic =  -18680.3 #elpd_loo = 9340.2
-	
-	# plot predictions
-	newdata <- data.frame(
-		julian_day = pcod_dat$julian_day,
-		haul = pcod_dat$haul,
-		year = pcod_dat$year,
-		latitude = pcod_dat$latitude,
-		longitude = pcod_dat$longitude,
-		mean_sum_temp = pcod_dat$mean_sum_temp,
-  	age_f = pcod_dat$age_f)
-	
-	pcod_fits <- predict(pcod_temp_int_age_gam, newdata = newdata, reformula = NA) %>% 
-		as_tibble()
-
-	pcod_fits <- bind_cols(pcod_fits, newdata)
-	
-	pcod_fits %>%
-		ggplot() +
-		geom_smooth(aes(mean_sum_temp, Estimate)) +
-		facet_wrap(~ age_f)
-	
 	#### POLLOCK ####
 	
 	# data wrangling
-	pollock_dat <- spec_temp_dat[[1]] %>%
+	pollock_dat <- spec_temp_dat[[2]] %>%
 		rename(julian_day = jday)
-	
-	pollock_dat <- pollock_dat  %>% filter(between(age_f, 1, 10))
 
 	pollock_dat$age_f <- as_factor(pollock_dat$age)
 	
@@ -115,11 +22,125 @@
 		group_by(age_f) %>%
 		summarize(n())
 	
-	# trim to 1999 forward & EBS only
-	yrs_keep <- 1999:2019
+	pollock_dat <- pollock_dat  %>% filter(between(age, 1, 10))
+
+	## trim to 1999 forward & EBS only
+	#yrs_keep <- 1999:2019
+	#
+	#pollock_dat <- pollock_dat %>%
+	#	filter(year %in% yrs_keep) 
+
+	# 1. weight ~ age + temp
+	poll_temp_age_gam <- brm(log_wt ~ age_f + s(mean_sum_temp) + t2(latitude, longitude) + s(julian_day) +
+													(1|year/haul) + (1|cohort),
+													data = pollock_dat,
+													family = gaussian(),
+													save_all_pars = TRUE,
+                  				warmup = 1000, iter = 5000, chains = 4, cores = 4)
+														
+
+  # 2. weight ~ age * temp
+	poll_temp_int_age_gam <- brm(log_wt ~ age_f + s(mean_sum_temp, by = age_f) + t2(latitude, longitude) +
+															s(julian_day) + (1|year/haul) + (1|cohort),
+															data = pollock_dat,
+															family = gaussian(),
+															save_all_pars = TRUE,
+                  						warmup = 1000, iter = 5000, cores = 4, chains = 4)
 	
-	pollock_dat <- pollock_dat %>%
-		filter(year %in% yrs_keep) 
+
+  # save models
+	saveRDS(poll_temp_age_gam, file = here("./output/model output/poll_temp_age_gam.rds"))	
+	saveRDS(poll_temp_int_age_gam, file = here("./output/model output/poll_temp_int_age_gam.rds"))
+
+	# load models 
+	poll_temp_age_gam_brms <- readRDS(file = "./output/model output/poll_temp_age_gam.rds")
+	poll_temp_int_age_gam_brms <- readRDS(file = "./output/model output/poll_temp_int_age_gam.rds")
+	
+	# compare models
+	loo(poll_temp_age_gam_brms, re_loo = TRUE)
+	loo(poll_temp_int_age_gam_brms, re_loo = TRUE) 
+
+	## plot ##
+	poll_temp_age_int_mod_ms <- conditional_smooths(poll_temp_int_age_gam)
+
+	poll_temp_age_int_df <- poll_temp_age_int_mod_ms[[1]] %>%
+		mutate(age = as.numeric(age_f),
+					 age_f = fct_reorder(age_f, age)) %>%
+		rename(estimate = estimate__,
+					 lwr = lower__,
+					 upr = upper__)
+	
+	poll_temp_age_int_brms_plot <- 
+		ggplot(poll_temp_age_int_df) +
+		geom_ribbon(aes(ymin = lwr, ymax = upr, x = mean_sum_temp), fill = "grey30") +
+		geom_line(aes(mean_sum_temp, estimate), color = "white") +
+		facet_wrap(~age_f, ncol = 5) +
+		scale_x_continuous(
+			name = "mean summer temperature (˚C)",
+			breaks = c(0, 1, 2),
+			labels = c(0, 1, 2)
+		) +
+		scale_y_continuous(
+			name = "partial effect on weight-at-age",
+			breaks = c(-0.2, 0, 0.2),
+			labels = c(-0.2, 0, 0.2)
+		) +
+		theme(
+			strip.text = element_text(color = "white"),
+			strip.background = element_blank(),
+			panel.border = element_rect(color = "white", fill = NA),
+			axis.text=element_text(colour = "white"),
+  		axis.title= element_text(color = "white"),
+  		axis.line = element_line(color = "white"),
+  		axis.ticks = element_line(colour = "white"),
+  		panel.background = element_rect(fill = "black"),
+			panel.grid = element_blank(),
+  		plot.background = element_rect(fill = "black", color = "black"))
+	
+	
+	ggsave(file = here("./output/plots/poll_temp_age_int_brms_plot.png"),
+				 poll_temp_age_int_brms_plot,
+				 width = 10, height = 5, units = "in")
+
+	ggplot_build(poll_temp_age_int_brms_plot)$layout$panel_scales_y[[1]]$range$range
+	
+	#### PCOD ####
+	
+	# data wrangling
+	pcod_dat <- spec_temp_dat[[1]] %>%
+		rename(julian_day = jday)
+	
+	pcod_dat$age_f <- as_factor(pcod_dat$age)
+	
+	pcod_dat <- pcod_dat %>%
+		group_by(age_f) %>%
+		mutate(mean_wt_age = mean(log_wt),
+					 sd_wt_age = sd(log_wt))
+	
+	pcod_dat <- pcod_dat %>%
+		group_by(age_f) %>%
+		rowwise() %>%
+		mutate(log_wt_scaled = (log_wt - mean_wt_age)/sd_wt_age)
+	
+	pcod_age_sum <- pcod_dat %>%
+		group_by(age_f) %>%
+		summarize(n())
+	
+	pcod_dat <- pcod_dat  %>% filter(between(age, 1, 28))
+
+	pcod_age_sum <- pcod_dat %>%
+		group_by(age_f) %>%
+		summarize(n())
+
+	## trim to 1999 forward & EBS only
+	#yrs_keep <- 1999:2019
+#
+	#pcod_dat2 <- pcod_dat %>%
+	#	filter(year %in% yrs_keep) 
+#
+	#pcod_age_sum2 <- pcod_dat2 %>%
+	#	group_by(age_f) %>%
+	#	summarize(n())
 
 	# scale weight by age
 	#scale.dat <- plyr::ddply(pollock_dat, "age", transform, sc.weight = scale(WEIGHT))
@@ -130,52 +151,96 @@
 	#													(1|year/haul) + (1|julian_day),
 	#													data = pcod_dat, family = gaussian())
 	
-	poll_temp_age_gam <- brm(log_wt ~ age_f + s(mean_sum_temp) + t2(latitude, longitude) +
-													(1|year/haul) + (1|julian_day),
-													data = pollock_dat,
+	# 1. weight ~ age + temp
+	pcod_temp_age_gam <- brm(log_wt ~ age_f + s(mean_sum_temp) + t2(latitude, longitude) + s(julian_day) +
+													(1|year/haul) + (1|cohort),
+													data = pcod_dat,
 													family = gaussian(),
 													save_all_pars = TRUE,
                   				warmup = 1000, iter = 5000, chains = 4, cores = 4)
 														
 
   # 2. weight ~ age * temp
-	poll_temp_int_age_gam <- brm(log_wt ~ age_f + s(mean_sum_temp, by = age_f) + t2(latitude, longitude) +
-													(1|year/haul) + (1|julian_day),
-													data = pollock_dat,
-													family = gaussian(),
-													save_all_pars = TRUE,
-                  				warmup = 1000, iter = 5000, cores = 4, chains = 4)
+	pcod_temp_int_age_gam <- brm(log_wt ~ age_f + s(mean_sum_temp, by = age_f) + t2(latitude, longitude) +
+															s(julian_day) + (1|year/haul) + (1|cohort),
+															data = pcod_dat,
+															family = gaussian(),
+															save_all_pars = TRUE,
+                  						warmup = 1000, iter = 5000, cores = 4, chains = 4)
 
   # save models
-	save(poll_temp_age_gam, file = "./output/model output/poll_temp_age_gam.rda")
-	save(poll_temp_int_age_gam, file = "./output/model output/poll_temp_int_age_gam.rda")
-	
-	# load models 
-	load(file = "./output/model output/poll_temp_age_glm.rda")
-	load(file = "./output/model output/poll_temp_int_age_glm.rda")
+	saveRDS(pcod_temp_age_gam, file = here("./output/model output/pcod_temp_age_gam.rds"))	
+	saveRDS(pcod_temp_int_age_gam, file = here("./output/model output/pcod_temp_int_age_gam.rds"))
 
+	# load models 
+	pcod_temp_age_gam <- readRDS(file = "./output/model output/pcod_temp_age_gam.rds")
+	pcod_temp_int_age_gam <- readRDS(file = "./output/model output/pcod_temp_int_age_gam.rds")
 	
 	# compare models
-	loo(poll_temp_age_glm) # looic = -7730.7. elpd loo =  3865.4
-	loo(poll_temp_int_age_glm) # looic = -7896.0, elpd loo =  3948.0 
+	loo(pcod_temp_age_gam) #looic = -17132.5 #elpd_loo = 8566.3
+	loo(pcod_temp_int_age_gam) #looic =  -18680.3 #elpd_loo = 9340.2
+	
+	### plots ###
+	
+	pcod_temp_mod_ms <- conditional_smooths(pcod_temp_age_gam)
+	pcod_temp_mod_brms_plot <- plot(pcod_temp_mod_ms)
 
+	pcod_temp_age_mod_ms <- conditional_smooths(pcod_temp_int_age_gam)
+	pcod_temp_age_mod_brms_plot <- plot(pcod_temp_age_mod_ms)
+
+	pcod_temp_plot <- pcod_temp_mod_brms_plot[[1]] +
+		ylab("partial effect log\nscaled weight-at-age") +
+		xlab("ROMS mean summer temp (A-J)") +
+		ggtitle("brms")
+	
+	# can also do 
+	pcod_temp_age_int_df <- pcod_temp_age_mod_ms[[1]] %>%
+		mutate(age = as.numeric(age_f),
+					 age_f = fct_reorder(age_f, age)) %>%
+		rename(estimate = estimate__,
+					 lwr = lower__,
+					 upr = upper__)
+	
+	pcod_temp_age_int_brms_plot <- 
+		ggplot(pcod_temp_age_int_df) +
+		geom_ribbon(aes(ymin = lwr, ymax = upr, x = mean_sum_temp), fill = "grey") +
+		geom_line(aes(mean_sum_temp, estimate), color = "white") +
+		facet_wrap(~age_f) +
+		theme(
+			strip.text = element_text(color = "white"),
+			strip.background = element_blank(),
+			panel.border = element_rect(color = "white", fill = NA),
+			axis.text=element_text(colour = "white"),
+  		axis.title= element_text(color = "white"),
+  		axis.line = element_line(color = "white"),
+  		axis.ticks = element_line(colour = "white"),
+  		panel.background = element_rect(fill = "black"),
+			panel.grid = element_blank(),
+  		plot.background = element_rect(fill = "black", color = "black"))
+	
+	
+############ old
 	# plot predictions
 	newdata <- data.frame(
-		julian_day = pollock_dat$julian_day,
-		haul = pollock_dat$haul,
-		year = pollock_dat$year,
-		mean_sum_temp = pollock_dat$mean_sum_temp,
-  	age_f = pollock_dat$age_f)
+		julian_day = pcod_dat$julian_day,
+		haul = pcod_dat$haul,
+		year = pcod_dat$year,
+		latitude = pcod_dat$latitude,
+		longitude = pcod_dat$longitude,
+		mean_sum_temp = pcod_dat$mean_sum_temp,
+  	age_f = pcod_dat$age_f)
 	
-	poll_fits <- predict(poll_temp_int_age_glm, newdata = newdata, reformula = NA) %>% 
-		as_tibble()
+	pcod_fits <- predict(pcod_temp_int_age_gam, newdata = newdata, 
+											 reformula = NA, allow_new_levels = TRUE) %>% 
+							 as_tibble()
 
-	poll_fits <- bind_cols(poll_fits, newdata)
+	pcod_fits <- bind_cols(pcod_fits, newdata)
 	
-	poll_fits %>%
+	pcod_fits %>%
 		ggplot() +
 		geom_smooth(aes(mean_sum_temp, Estimate)) +
 		facet_wrap(~ age_f)
+	
 	
 	#### YELLOWFIN SOLE ####
 	
@@ -183,8 +248,6 @@
 	yfinsole_dat <- spec_temp_dat[[3]] %>%
 		rename(julian_day = jday)
 	
-	yfinsole_dat <- yfinsole_dat  %>% filter(between(age_f, 1, 10))
-
 	yfinsole_dat$age_f <- as_factor(yfinsole_dat$age)
 	
 	yfinsole_dat <- yfinsole_dat %>%
@@ -201,11 +264,14 @@
 		group_by(age_f) %>%
 		summarize(n())
 	
-	# trim to 1999 forward & EBS only
-	yrs_keep <- 1999:2019
+	yfinsole_dat <- yfinsole_dat  %>% filter(between(age, 1, 20))
+
 	
-	yfinsole_dat <- yfinsole_dat %>%
-		filter(year %in% yrs_keep) 
+	## trim to 1999 forward & EBS only
+	#yrs_keep <- 1999:2019
+	#
+	#yfinsole_dat <- yfinsole_dat %>%
+	#	filter(year %in% yrs_keep) 
 
 	# scale weight by age
 	#scale.dat <- plyr::ddply(pollock_dat, "age", transform, sc.weight = scale(WEIGHT))
@@ -216,8 +282,9 @@
 	#													(1|year/haul) + (1|julian_day),
 	#													data = pcod_dat, family = gaussian())
 	
-	yfin_temp_age_gam <- brm(log_wt ~ age_f + s(mean_sum_temp) + t2(latitude, longitude) +
-													(1|year/haul) + (1|julian_day),
+	# 1. weight ~ age + temp
+	yfin_temp_age_gam <- brm(log_wt ~ age_f + s(mean_sum_temp) + t2(latitude, longitude) + s(julian_day) +
+													(1|year/haul) + (1|cohort),
 													data = yfinsole_dat,
 													family = gaussian(),
 													save_all_pars = TRUE,
@@ -226,19 +293,19 @@
 
   # 2. weight ~ age * temp
 	yfin_temp_int_age_gam <- brm(log_wt ~ age_f + s(mean_sum_temp, by = age_f) + t2(latitude, longitude) +
-													(1|year/haul) + (1|julian_day),
-													data = yfinsole_dat,
-													family = gaussian(),
-													save_all_pars = TRUE,
-                  				warmup = 1000, iter = 5000, cores = 4, chains = 4)
+															s(julian_day) + (1|year/haul) + (1|cohort),
+															data = yfinsole_dat,
+															family = gaussian(),
+															save_all_pars = TRUE,
+                  						warmup = 1000, iter = 5000, cores = 4, chains = 4)
 
   # save models
-	save(yfin_temp_age_gam, file = "./output/model output/yfin_temp_age_gam.rda")
-	save(yfin_temp_int_age_gam, file = "./output/model output/yfin_temp_int_age_gam.rda")
-	
+	saveRDS(yfin_temp_age_gam, file = here("./output/model output/yfin_temp_age_gam.rds"))	
+	saveRDS(yfin_temp_int_age_gam, file = here("./output/model output/yfin_temp_int_age_gam.rds"))
+
 	# load models 
-	load(file = "./output/model output/yfin_temp_age_glm.rda")
-	load(file = "./output/model output/yfin_temp_int_age_glm.rda")
+	yfin_temp_age_gam <- readRDS(file = "./output/model output/yfin_temp_age_gam.rds")
+	yfin_temp_int_age_gam <- readRDS(file = "./output/model output/yfin_temp_int_age_gam.rds")
 
 	
 	# compare models
@@ -246,6 +313,34 @@
 	loo(yfin_temp_int_age_glm) # looic =   ; elpdloo = 
 
 	# plot predictions
+	
+	yfin_temp_age_int_df <- yfin_temp_int_age_gam[[1]] %>%
+		mutate(age = as.numeric(age_f),
+					 age_f = fct_reorder(age_f, age)) %>%
+		rename(estimate = estimate__,
+					 lwr = lower__,
+					 upr = upper__)
+	
+	ggplot(yfin_temp_age_int_df) +
+		geom_ribbon(aes(ymin = lwr, ymax = upr, x = mean_sum_temp), fill = "grey") +
+		geom_line(aes(mean_sum_temp, estimate), color = "white") +
+		facet_wrap(~age_f) +
+		theme(
+			strip.text = element_text(color = "white"),
+			strip.background = element_blank(),
+			panel.border = element_rect(color = "white", fill = NA),
+			axis.text=element_text(colour = "white"),
+  		axis.title= element_text(color = "white"),
+  		axis.line = element_line(color = "white"),
+  		axis.ticks = element_line(colour = "white"),
+  		panel.background = element_rect(fill = "black"),
+			panel.grid = element_blank(),
+  		plot.background = element_rect(fill = "black", color = "black"))
+
+	
+	
+	
+	####################### OLD 
 	newdata <- data.frame(
 		julian_day = yfinsole_dat$julian_day,
 		haul = yfinsole_dat$haul,

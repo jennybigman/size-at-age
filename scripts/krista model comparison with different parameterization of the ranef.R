@@ -1,3 +1,5 @@
+# testing different formulation of rnadom effects with Krista's models
+
 # code to run Krista's models in Oke et al 2022
 
 	library(here)
@@ -42,91 +44,13 @@
 		facet_wrap(~AGE)
 
 	#### GAMs using gamm4 (package used in paper) ####
-	# 1. log, scaled weight at age ~  julian day + random effects of cohort +  haul nested within year
-	base_mod_KO <- gamm4(log_sc_weight ~  t2(LONGITUDE, LATITUDE) + s(julian, k = 4) +
-                  		 s(cohort, bs="re"),
-                			 random=~(1|YEAR/HAUL), data=lagdat, REML=TRUE) 
-	
-	#summary(base_mod_KO$gam)
-	#summary(base_mod_KO$mer)	
-  #gam.check(base_mod_KO$gam)	
-  #AICc(base_mod_KO$mer)
 
-  # 2. log, scaled weight at age ~  temp + julian day + random effects of cohort +  haul nested within year
-	temp_mod_KO <- gamm4(log_sc_weight ~  s(sst.amj, k=4) +  t2(LONGITUDE, LATITUDE) + s(julian, k = 4) +
-                   s(cohort, bs="re"),
-                	 random=~(1|YEAR/HAUL), data=lagdat, REML=TRUE) 
-	
-	
-	#summary(temp_mod_KO$gam)
-  #AICc(temp_mod_KO$mer)
-	
-  # 3. log, scaled weight at age ~  + age*temp + julian day + random effects of cohort +  haul nested within year
-	temp_age_int_mod_KO <- gamm4(log_sc_weight ~  s(sst.amj, by=AGE, k=4) + t2(LONGITUDE, LATITUDE) + s(julian, k = 4) +
-                         s(cohort, bs="re"),
-                         random=~(1|YEAR/HAUL) , data=lagdat, REML=TRUE) 
-	
-	#summary(temp_age_int_mod_KO$gam)
-	#summary(temp_age_int_mod_KO$mer)	
-  #gam.check(temp_age_int_mod_KO$gam)	
-  #AICc(temp_age_int_mod_KO$mer)
- 
-	# store data in gam obj
-	temp_age_int_mod_KO$gam$data <- lagdat
-
-  #### save and load model ouput ####
-  
-  # save
-  saveRDS(base_mod_KO, 
-  				file = here("./output/model output/pollock/base_mod_KO.rds"))
-  saveRDS(temp_mod_KO, 
-  				file = here("./output/model output/pollock/temp_mod_KO.rds"))
-  saveRDS(temp_age_int_mod_KO, 
-  				file = here("./output/model output/pollock/temp_age_int_mod_KO.rds"))
-  
   # load
   base_mod_KO <- readRDS("~/Dropbox/NOAA AFSC Postdoc/temp, growth, size project/size-at-age/output/model output/pollock/base_mod_KO.rds")
 	temp_mod_KO <- readRDS("~/Dropbox/NOAA AFSC Postdoc/temp, growth, size project/size-at-age/output/model output/pollock/temp_mod_KO.rds")
 	temp_age_int_mod_KO <- readRDS("~/Dropbox/NOAA AFSC Postdoc/temp, growth, size project/size-at-age/output/model output/pollock/temp_age_int_mod_KO.rds")
 	
 	#### GAMs using brms ####
-
-  # 1. log, scaled weight at age ~  julian day + random effects of cohort +  haul nested within year
-  base_mod_brms_KO <- brm(log_sc_weight ~  t2(LONGITUDE, LATITUDE) + s(julian, k = 4) +
-                  			  (1|cohort) + (1|YEAR/HAUL),
-                					data = lagdat, 
-                					family = gaussian(),
-                					save_all_pars = TRUE,
-                					warmup = 1000, iter = 5000,
-                					chains = 4, cores = 4) 
-  
-  saveRDS(base_mod_brms_KO, 
-  				file = here("./output/model output/pollock/base_mod_brms_KO.rds"))
-  
-  # 2. log, scaled weight at age ~  temp + julian day + random effects of cohort +  haul nested within year
-	temp_mod_brms_KO <- brm(log_sc_weight ~  s(sst.amj, k=4) + t2(LONGITUDE, LATITUDE) + 
-												  s(julian, k = 4) + (1|cohort) + (1|YEAR/HAUL),
-													data = lagdat,
-													family = gaussian(),
-                					save_all_pars = TRUE,
-                					warmup = 1000, iter = 5000,
-                					chains = 4, cores = 4) 
-  
-  saveRDS(temp_mod_brms_KO, 
-  				file = here("./output/model output/pollock/temp_mod_brms_KO.rds"))
-
-  # 3. log, scaled weight at age ~  + age*temp + julian day + random effects of cohort +  haul nested within year
-	temp_age_int_mod_brms_KO <- brm(log_sc_weight ~  s(sst.amj, by=AGE, k=4) + 
-																	t2(LONGITUDE, LATITUDE) + 
-												  		    s(julian, k = 4) + (1|cohort) + (1|YEAR/HAUL),
-																	data = lagdat,
-																	family = gaussian(),
-                									save_all_pars = TRUE,
-                									warmup = 1000, iter = 5000,
-                									chains = 4, cores = 4) 
-		
-  saveRDS(temp_age_int_mod_brms_KO, 
-  				file = here("./output/model output/pollock/temp_age_int_mod_brms_KO.rds"))
 
   # load
 	base_mod_brms_KO <- readRDS("~/Dropbox/NOAA AFSC Postdoc/temp, growth, size project/size-at-age/output/model output/pollock/base_mod_brms_KO.rds")
@@ -138,36 +62,20 @@
 	
 	# 1. log, scaled weight at age ~  julian day + random effects of cohort +  haul nested within year
 	base_mod_KO_bam <- bam(log_sc_weight ~  t2(LONGITUDE, LATITUDE) + s(julian, k = 4) +
-                  		   s(cohort, bs="re"),
-                			   random=~(1|YEAR/HAUL), data=lagdat, REML=TRUE) 
+                  		   s(cohort, bs="re") +  s(HAUL, by = YEAR, bs = "re"),
+                			   data=lagdat, REML=TRUE) 
 	
-	summary(base_mod_KO_bam)
-	
+
 	# 2. log, scaled weight at age ~  temp + julian day + random effects of cohort +  haul nested within year
 	temp_mod_KO_bam <- bam(log_sc_weight ~  s(sst.amj, k=4) +  t2(LONGITUDE, LATITUDE) + s(julian, k = 4) +
-                  	 s(cohort, bs="re"),
-                		 random=~(1|YEAR/HAUL), data=lagdat, REML=TRUE) 
+                  	 s(cohort, bs="re") + s(HAUL, by = YEAR, bs = "re"),
+                		 data=lagdat, REML=TRUE) 
 
 	
   # 3. log, scaled weight at age ~  + age*temp + julian day + random effects of cohort +  haul nested within year
 	temp_age_int_mod_KO_bam <- bam(log_sc_weight ~  s(sst.amj, by=AGE, k=4) + t2(LONGITUDE, LATITUDE) + s(julian, k = 4) +
-                        			   s(cohort, bs="re"),
-                        			   random=~(1|YEAR/HAUL) , data=lagdat, REML=TRUE) 
-	
-  #### save and load model ouput ####
-  
-  # save
-  saveRDS(base_mod_KO_bam, 
-  				file = here("./output/model output/pollock/base_mod_KO_bam.rds"))
-  saveRDS(temp_mod_KO_bam, 
-  				file = here("./output/model output/pollock/temp_mod_KO_bam.rds"))
-  saveRDS(temp_age_int_mod_KO_bam, 
-  				file = here("./output/model output/pollock/temp_age_int_mod_KO_bam.rds"))
-  
-  # load
-  base_mod_KO_bam <- readRDS("~/Dropbox/NOAA AFSC Postdoc/temp, growth, size project/size-at-age/output/model output/pollock/base_mod_KO_bam.rds")
-	temp_mod_KO_bam <- readRDS("~/Dropbox/NOAA AFSC Postdoc/temp, growth, size project/size-at-age/output/model output/pollock/temp_mod_KO_bam.rds")
-	temp_age_int_mod_KO_bam <- readRDS("~/Dropbox/NOAA AFSC Postdoc/temp, growth, size project/size-at-age/output/model output/pollock/temp_age_int_mod_KO_bam.rds")
+                        			   s(cohort, bs="re") + s(HAUL, by = YEAR, bs = "re"),
+                        			   data=lagdat, REML=TRUE) 
 	
   
   #### compare models via plotting ####
@@ -315,7 +223,7 @@
 
 	jday_KO_text <- jday_top/jday_mid/jday_bot
 		
-	ggsave(file = here("./output/plots/jday_KO_comparison.pdf"),
+	ggsave(file = here("./output/plots/jday_KO_comparison_ranef_diffparam.pdf"),
 				 jday_KO_text)
 	
 	## sst ##
@@ -368,7 +276,7 @@
 
 	sst_KO <- temp_mod_sst_gamm4_plot + temp_mod_sst_bam_plot + temp_mod_brms_sst
 		
-	ggsave(file = here("./output/plots/sst_KO_comparison.pdf"),
+	ggsave(file = here("./output/plots/sst_KO_comparison_diffparam.pdf"),
 				 sst_KO)
 	
 	
@@ -387,7 +295,7 @@
 		facet_wrap(~AGE) +
 		ylim(ylims) +
 		theme_update(
-			strip.text = element_text(size = 5),
+			strip.text = element_text(size = 2),
 			strip.background = element_blank(),
 			panel.border = element_rect(color = "black", fill = NA))
 	
@@ -429,7 +337,7 @@
 
 	sst_age_KO <- temp_age_mod_sst_gamm4_plot + temp_age_mod_sst_bam_plot + temp_age_mod_brms_sst
 		
-	ggsave(file = here("./output/plots/sst_age_KO_comparison.pdf"),
+	ggsave(file = here("./output/plots/sst_age_KO_comparison_diffparam.pdf"),
 				 sst_age_KO)
 				 
 	
