@@ -154,14 +154,63 @@
 
 	fwrite(ROMS_sum_temp_avg, "./data/ROMS_sum_temp_avg.csv")
 
+	# future temps
 	
+	# read in bias corrected temps
+	cesm_dfs_trim_domain <- fread("../../Pcod Project/Pcod Bering Sea Habitat Suitability/Pcod-Bering-Sea/data/cesm_dfs_trim_domain.csv")
+  gfdl_dfs_trim_domain <- fread("../../Pcod Project/Pcod Bering Sea Habitat Suitability/Pcod-Bering-Sea/data/gfdl_dfs_trim_domain.csv")
+  miroc_dfs_trim_domain <- fread("../../Pcod Project/Pcod Bering Sea Habitat Suitability/Pcod-Bering-Sea/data/miroc_dfs_trim_domain.csv")
+
+  proj_list <- list(cesm_dfs_trim_domain, gfdl_dfs_trim_domain, miroc_dfs_trim_domain)
+  
+  # summarize by yr mean temp
+  
+  yr_mean_func <- function(df){
+  	
+  	df_yr <- df %>%
+  		group_by(scenario, simulation, year) %>%
+  		summarise(mean_temp = mean(bc_temp))
+ 
+  	df_yr
+  }
+  
+  yr_mean_temp_list <- lapply(proj_list, yr_mean_func)
+  
+  yr_mean_proj_temps <- bind_rows(yr_mean_temp_list)
+  
+  # summer mean temps
+  
+  mo_keep <- 4:6 
+  
+	sum_trim_function <- function(df){
+		
+		df_yr <- df %>%
+			filter(month %in% mo_keep) %>%
+  		group_by(scenario, simulation, year) %>%
+  		summarise(sum_mean_temp = mean(bc_temp))
+ 
+  	df_yr
+	}
+
+  sum_mean_temp_list <- lapply(proj_list, sum_trim_function)
+
+  sum_mean_proj_temps <- bind_rows(sum_mean_temp_list)
+  
+  # combine together and save
+  ROMS_proj_temps_saa <- left_join(yr_mean_proj_temps, sum_mean_proj_temps)
+  
+  ROMS_proj_temps_saa <- ROMS_proj_temps_saa %>%
+  	filter(year > 2019)
+  
+  fwrite(ROMS_proj_temps_saa, here("./data/ROMS_proj_temps_saa.csv"))
+  
 	#### temps from ACLIM ####
 	
 	load("../../ACLIM2//Data/out/K20P19_CMIP6/allEBS_means/ACLIM_weekly_hist_mn.Rdata")
 	load("../../ACLIM2/Data/out/K20P19_CMIP6/allEBS_means/ACLIM_weekly_hind_mn.Rdata")
   load("../../ACLIM2//Data/out/K20P19_CMIP6/allEBS_means/ACLIM_weekly_fut_mn.Rdata")
   
-  temp_hist <- ACLIM_weekly_hind %>%
+  temp_hist <- ACLIM_weekly_hist %>%
     filter(var == "temp_bottom5m")
   	
   temp_hind <- ACLIM_weekly_hind %>%
@@ -169,3 +218,71 @@
   
   temp_proj <- ACLIM_weekly_fut %>%
     filter(var == "temp_bottom5m")
+  
+  sum_mo <- 4:6
+  
+  ACLIM_temp_hind_sum_mean <- temp_hind %>%
+  	filter(mo %in% sum_mo) %>%
+  	group_by(year) %>%
+  	summarise(mean_temp_sum_ACLIM = mean(mn_val))
+
+  ACLIM_temp_hind_yr_mean <- temp_hind %>%
+  	group_by(year) %>%
+  	summarise(mean_temp_yr_ACLIM = mean(mn_val))
+  
+  ACLIM_hind_temps <- left_join(ACLIM_temp_hind_yr_mean, ACLIM_temp_hind_sum_mean)
+  
+  ACLIM_temp_proj_sum_mean <- temp_proj %>%
+  	filter(mo %in% sum_mo) %>%
+  	group_by(year, GCM, scen) %>%
+  	summarise(mean_temp = mean(val_biascorrected)) %>%
+  		rename(scenario = scen,
+  				 simulation = GCM)
+
+  ACLIM_temp_proj_yr_mean <- temp_proj %>%
+  	group_by(year, GCM, scen) %>%
+  	summarise(mean_temp = mean(val_biascorrected)) %>%
+  	rename(scenario = scen,
+  				 simulation = GCM)
+
+  # compare level 2 hindcast temps to level 3
+  
+  # hindcast temp
+  
+  ggplot() +
+  	geom_line(data = ROMS_hind_temps,
+  						aes(x = year, y = mean_sum_temp),
+  						color = "red") +
+  	geom_line(data = ACLIM_temp_hind_sum_mean,
+  						aes(x = year, y = mean_temp),
+  						color = "blue")
+  
+   ggplot() +
+  	geom_line(data = ROMS_hind_temps,
+  						aes(x = year, y = yr_mean_temp),
+  						color = "red") +
+  	geom_line(data = ACLIM_temp_hind_yr_mean,
+  						aes(x = year, y = mean_temp),
+  						color = "blue")
+
+   # future temp
+   
+   # yearly mean
+   ggplot() +
+  	geom_line(data = ROMS_proj_temps_saa,
+  						aes(x = year, y = mean_temp),
+  						color = "red") +
+  	geom_line(data = ACLIM_temp_proj_yr_mean,
+  						aes(x = year, y = mean_temp),
+  						color = "blue") +
+    facet_grid(simulation ~ scenario)
+ 
+   # summer mean
+   ggplot() +
+  	geom_line(data = ROMS_proj_temps_saa,
+  						aes(x = year, y = sum_mean_temp),
+  						color = "red") +
+  	geom_line(data = ACLIM_temp_proj_sum_mean,
+  						aes(x = year, y = mean_temp),
+  						color = "blue") +
+    facet_grid(simulation ~ scenario)

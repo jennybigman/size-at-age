@@ -1,6 +1,6 @@
 # models with GCV fitting and not REML
 
- #### models ####
+ #### models with ROMS temps from Pcod paper ####
   
 	# pollock #	
   
@@ -98,3 +98,101 @@
   # load
   yfin_temp_age_bam_gcv <- readRDS(here("./output/model output/pollock/yfin_temp_age_bam_gcv.rds"))
   yfin_temp_int_age_bam_gcv <- readRDS(here("./output/model output/pollock/yfin_temp_int_age_bam_gcv.rds"))
+
+  #### with ACLIM temps ####
+  
+  	# pollock #	
+  
+	#1. weight ~ age + temp
+	pol_temp_age_bam_ACLIM_gcv <- bam(log_wt ~ age_f + s(mean_temp_sum_ACLIM) + s(julian_day) + 
+													te(latitude, longitude) + 
+													s(ID_f, bs = "re") + # haul in year random effect
+								 					s(haul_id_f, bs = "re") + # haul in year random effect
+								 					s(cohort_f, bs = "re"),
+													data = pollock_dat,
+													method = "GCV.Cp")
+
+	
+
+  saveRDS(pol_temp_age_bam_ACLIM_gcv, 
+  				file = here("./output/model output/ACLIM temps/pol_temp_age_bam_ACLIM_gcv.rds"))
+  
+  # 2. weight ~ age * temp
+	pol_temp_int_age_bam_ACLIM_gcv <- bam(log_wt ~ age_f + s(mean_temp_sum_ACLIM, by = age_f) + 
+													s(julian_day) + 
+													te(latitude, longitude) + 
+													s(ID_f, bs = "re") + # haul in year random effect
+								 					s(haul_id_f, bs = "re") + # haul in year random effect
+								 					s(cohort_f, bs = "re"),
+													data = pollock_dat,
+													method = "GCV.Cp")
+
+	saveRDS(pol_temp_int_age_bam_ACLIM_gcv, 
+  				file = here("./output/model output/ACLIM temps/pol_temp_int_age_bam_ACLIM_gcv.rds"))
+  
+
+	# pcod #
+	
+	pcod_dat <- left_join(pcod_dat, ACLIM_hind_temps)
+
+	
+	#1. weight ~ age + temp
+	pcod_temp_age_bam_ACLIM_gcv <- bam(log_wt ~ age_f + s(mean_temp_sum_ACLIM) + s(julian_day) + 
+													te(latitude, longitude) + 
+													s(ID_f, bs = "re") + # haul in year random effect
+								 					s(haul_id_f, bs = "re") + # haul in year random effect
+								 					s(cohort_f, bs = "re"),
+													data = pcod_dat,
+													method = "GCV.Cp")
+	
+	saveRDS(pcod_temp_age_bam_ACLIM_gcv, 
+  				file = here("./output/model output/ACLIM temps/pcod_temp_age_bam_ACLIM_gcv.rds"))
+ 
+														
+
+  # 2. weight ~ age * temp
+	pcod_temp_int_age_bam_ACLIM_gcv <- bam(log_wt ~ age_f + s(mean_temp_sum_ACLIM, by = age_f) + s(julian_day) + 
+													te(latitude, longitude) + 
+													s(ID_f, bs = "re") + # haul in year random effect
+								 					s(haul_id_f, bs = "re") + # haul in year random effect
+								 					s(cohort_f, bs = "re"),
+													data = pcod_dat,
+													method = "GCV.Cp")
+														
+		
+	saveRDS(pcod_temp_int_age_bam_ACLIM_gcv, 
+  				file = here("./output/model output/ACLIM temps/pcod_temp_int_age_bam_ACLIM_gcv.rds"))
+  
+ 
+	# yfin sole #
+	
+	yfinsole_dat <- left_join(yfinsole_dat, ACLIM_hind_temps)
+
+	
+	# 1. weight ~ age + temp
+	yfin_temp_age_bam_ACLIM_gcv <- bam(log_wt ~ age_f + s(mean_temp_sum_ACLIM) + s(julian_day) + 
+													te(latitude, longitude) + 
+													s(ID_f, bs = "re") + # haul in year random effect
+								 					s(haul_id_f, bs = "re") + # haul in year random effect
+								 					s(cohort_f, bs = "re"),
+													data = yfinsole_dat,
+													method = "GCV.Cp")
+														
+	saveRDS(yfin_temp_age_bam_ACLIM_gcv, 
+  				file = here("./output/model output/ACLIM temps/yfin_temp_age_bam_ACLIM_gcv.rds"))
+ 
+
+  # 2. weight ~ age * temp
+	yfin_temp_int_age_bam_ACLIM_gcv <- bam(log_wt ~ age_f + 
+																		 	s(mean_temp_sum_ACLIM, by = age_f) + 
+																		 	s(julian_day) + 
+													te(latitude, longitude) + 
+													s(ID_f, bs = "re") + # haul in year random effect
+								 					s(haul_id_f, bs = "re") + # haul in year random effect
+								 					s(cohort_f, bs = "re"),
+													data = yfinsole_dat,
+													method = "GCV.Cp")
+		
+	saveRDS(yfin_temp_int_age_bam_ACLIM_gcv, 
+  				file = here("./output/model output/ACLIM temps/yfin_temp_int_age_bam_ACLIM_gcv.rds"))
+  
