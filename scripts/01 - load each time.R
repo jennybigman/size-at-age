@@ -1,5 +1,8 @@
 # load each time
 
+ # for screen
+ setwd("/Users/jenniferbigman/Dropbox/NOAA AFSC Postdoc/temp, growth, size project/size-at-age")
+
 	library(here)
 	library(tidyverse)
 	library(lubridate)
@@ -14,6 +17,8 @@
 	library(patchwork)
 	library(grid)
 	library(gratia)
+	library(sf)
+	library(AICcmodavg)
 
 	#### temp data ####
 	
@@ -50,6 +55,20 @@
   
   ACLIM_hind_temps <- left_join(ACLIM_temp_hind_yr_mean, ACLIM_temp_hind_sum_mean)
 	
+  # keep basin separate 
+  SEBS_ACLIM_temp_hind_sum_mean <- temp_hind %>%
+  	filter(mo %in% sum_mo) %>%
+  	filter(basin == "SEBS") %>%
+  	group_by(year) %>%
+  	summarise(SEBS_mean_sum_temp = mean(mn_val))
+
+  SEBS_ACLIM_temp_hind_yr_mean <- temp_hind %>%
+  	filter(basin == "SEBS") %>%
+  	group_by(year) %>%
+  	summarise(SEBS_mean_yr_temp = mean(mn_val))
+  
+  SEBS_ACLIM_hind_temps <- left_join(SEBS_ACLIM_temp_hind_sum_mean, SEBS_ACLIM_temp_hind_yr_mean)
+
 	# specimen data
 	specimen_dat <- read.csv(file = here("./data/df_list_wrangled_names.csv"))
 
@@ -76,16 +95,15 @@
 	temp_join_func <- function(x){
  
  		specimen_dat <- left_join(x, ROMS_hind_temps, by = "year")
- 		specimen_dat <- left_join(x, ACLIM_hind_temps, by = "year")
+ 		specimen_dat <- left_join(specimen_dat, ACLIM_hind_temps, by = "year")
+ 		specimen_dat <- left_join(specimen_dat, SEBS_ACLIM_hind_temps, by = "year")
+ 		
 	}
  
 	spec_temp_dat <- lapply(specimen_dat_list, temp_join_func)
 
-	
 
-	# individual data sets 
-	
-		#### data wrangling ####
+	# individual data sets ####
 	
 	# pollock #
 	pollock_dat <- spec_temp_dat[[2]] %>%
@@ -108,12 +126,12 @@
 		summarize(n())
 	
 	pollock_dat <- pollock_dat  %>% filter(between(age, 1, 10))
-	# stock assessment goes to 14, but after age class 10, not many indivudals per age class
+	# stock assessment goes to 14, but after age class 10, not many individuals per age class
 
 	# set up random effect coding
 	
-	pol_yr <- unique(pollock_dat$year)
-	ID <- letters[1:23]
+	pol_yr <- sort(unique(pollock_dat$year))
+	ID <- letters[1:length(pol_yr)]
 	
 	pol_yr_id <- data.frame(pol_yr, ID) %>%
 		rename(year = pol_yr)
@@ -129,6 +147,7 @@
 
 	glimpse(pollock_dat)
 	
+
  # pcod #
 
 	pcod_dat <- spec_temp_dat[[1]] %>%
@@ -159,8 +178,8 @@
 
 	# set up random effect coding
 	
-	pcod_year <- unique(pcod_dat$year)
-	ID <- letters[1:24]
+	pcod_year <- sort(unique(pcod_dat$year))
+	ID <- letters[1:length(pcod_year)]
 	
 	pcod_years_id <- data.frame(pcod_year, ID) %>%
 		rename(year = pcod_year)
@@ -204,8 +223,8 @@
 
 	# set up random effect coding
 	
-	yfin_year <- unique(yfinsole_dat$year)
-	ID <- letters[1:23]
+	yfin_year <- sort(unique(yfinsole_dat$year))
+	ID <- letters[1:length(yfin_year)]
 	
 	yfin_years_id <- data.frame(yfin_year, ID) %>%
 		rename(year = yfin_year)

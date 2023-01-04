@@ -1,7 +1,7 @@
 # models with cohort effect and using bam
 
 
-  #### models with hindast temps from my Pcod paper ####
+  #### models with summer (April - June avgs) hindcast temps bias-corrected at monthly, domain level ####
   
 	# pollock #	
   
@@ -30,13 +30,13 @@
 
 	# save
   saveRDS(pol_temp_age_bam, 
-  				file = here("./output/model output/pollock/pol_temp_age_bam.rds"))
+  				file = here("./output/model output/ROMS temps from Pcod paper/pol_temp_age_bam.rds"))
   saveRDS(pol_temp_int_age_bam, 
-  				file = here("./output/model output/pollock/pol_temp_int_age_bam.rds"))
+  				file = here("./output/model output/ROMS temps from Pcod paper/pol_temp_int_age_bam.rds"))
  
   # load
-  pol_temp_age_bam <- readRDS(here("./output/model output/pollock/pol_temp_age_bam.rds"))
-  pol_temp_int_age_bam <- readRDS(here("./output/model output/pollock/pol_temp_int_age_bam.rds"))
+  pol_temp_age_bam <- readRDS(here("./output/model output/ROMS temps from Pcod paper/pol_temp_age_bam.rds"))
+  pol_temp_int_age_bam <- readRDS(here("./output/model output/ROMS temps from Pcod paper/pol_temp_int_age_bam.rds"))
 
 	# pcod #
 	
@@ -63,13 +63,13 @@
 
 	# save
   saveRDS(pcod_temp_age_bam, 
-  				file = here("./output/model output/pollock/pcod_temp_age_bam.rds"))
+  				file = here("./output/model output/ROMS temps from Pcod paper/pcod_temp_age_bam.rds"))
   saveRDS(pcod_temp_int_age_bam, 
-  				file = here("./output/model output/pollock/pcod_temp_int_age_bam.rds"))
+  				file = here("./output/model output/ROMS temps from Pcod paper/pcod_temp_int_age_bam.rds"))
  
   # load
-  pcod_temp_age_bam <- readRDS(here("./output/model output/pollock/pcod_temp_age_bam.rds"))
-  pcod_temp_int_age_bam <- readRDS(here("./output/model output/pollock/pcod_temp_int_age_bam.rds"))
+  pcod_temp_age_bam <- readRDS(here("./output/model output/ROMS temps from Pcod paper/pcod_temp_age_bam.rds"))
+  pcod_temp_int_age_bam <- readRDS(here("./output/model output/ROMS temps from Pcod paper/pcod_temp_int_age_bam.rds"))
 	
  
 	# yfin sole #
@@ -97,13 +97,13 @@
 
 	# save
   saveRDS(yfin_temp_age_bam, 
-  				file = here("./output/model output/pollock/yfin_temp_age_bam.rds"))
+  				file = here("./output/model output/ROMS temps from Pcod paper/yfin_temp_age_bam.rds"))
   saveRDS(yfin_temp_int_age_bam, 
-  				file = here("./output/model output/pollock/yfin_temp_int_age_bam.rds"))
+  				file = here("./output/model output/ROMS temps from Pcod paper/yfin_temp_int_age_bam.rds"))
  
   # load
-  yfin_temp_age_bam <- readRDS(here("./output/model output/pollock/yfin_temp_age_bam.rds"))
-  yfin_temp_int_age_bam <- readRDS(here("./output/model output/pollock/yfin_temp_int_age_bam.rds"))
+  yfin_temp_age_bam <- readRDS(here("./output/model output/ROMS temps from Pcod paper/yfin_temp_age_bam.rds"))
+  yfin_temp_int_age_bam <- readRDS(here("./output/model output/ROMS temps from Pcod paper/yfin_temp_int_age_bam.rds"))
 
 	
 	#### plots ####
@@ -177,8 +177,9 @@
 				 width = 7, height = 5, units = "in")
 	
 	
-	#### with ACLIM temps #####
+	#### with ACLIM summer (April - June) temps #####
 	
+	## both NEBS and SEBS averaged ####
 	
 	# pollock #	
   
@@ -263,3 +264,174 @@
 	saveRDS(yfin_temp_int_age_bam_ACLIM, 
   				file = here("./output/model output/ACLIM temps/yfin_temp_int_age_bam_ACLIM.rds"))
   
+	
+	## just SEBS temps ####
+	
+	# pollock #	
+  
+	#1. weight ~ age + temp
+	pol_temp_age_bam_ACLIM_SEBS <- bam(log_wt ~ age_f + s(SEBS_mean_sum_temp) + s(julian_day) + 
+													te(latitude, longitude) + 
+													s(ID_f, bs = "re") + # haul in year random effect
+								 					s(haul_id_f, bs = "re") + # haul in year random effect
+								 					s(cohort_f, bs = "re"),
+													data = pollock_dat)
+	
+
+  saveRDS(pol_temp_age_bam_ACLIM_SEBS, 
+  				file = here("./output/model output/ACLIM temps/pol_temp_age_bam_ACLIM_SEBS.rds"))
+  
+  # 2. weight ~ age * temp
+	pol_temp_int_age_bam_ACLIM_SEBS <- bam(log_wt ~ age_f + s(SEBS_mean_sum_temp, by = age_f) + 
+													s(julian_day) + 
+													te(latitude, longitude) + 
+													s(ID_f, bs = "re") + # haul in year random effect
+								 					s(haul_id_f, bs = "re") + # haul in year random effect
+								 					s(cohort_f, bs = "re"),
+													data = pollock_dat)
+														
+		
+	saveRDS(pol_temp_int_age_bam_ACLIM_SEBS, 
+  				file = here("./output/model output/ACLIM temps/pol_temp_int_age_bam_ACLIM_SEBS.rds"))
+  
+
+	# pcod #
+	
+	#1. weight ~ age + temp
+	pcod_temp_age_bam_ACLIM_SEBS <- bam(log_wt ~ age_f + s(SEBS_mean_sum_temp) + s(julian_day) + 
+													te(latitude, longitude) + 
+													s(ID_f, bs = "re") + # haul in year random effect
+								 					s(haul_id_f, bs = "re") + # haul in year random effect
+								 					s(cohort_f, bs = "re"),
+													data = pcod_dat)
+	
+	saveRDS(pcod_temp_age_bam_ACLIM_SEBS, 
+  				file = here("./output/model output/ACLIM temps/pcod_temp_age_bam_ACLIM_SEBS.rds"))
+ 
+														
+
+  # 2. weight ~ age * temp
+	pcod_temp_int_age_bam_ACLIM_SEBS <- bam(log_wt ~ age_f + s(SEBS_mean_sum_temp, by = age_f) + s(julian_day) + 
+													te(latitude, longitude) + 
+													s(ID_f, bs = "re") + # haul in year random effect
+								 					s(haul_id_f, bs = "re") + # haul in year random effect
+								 					s(cohort_f, bs = "re"),
+													data = pcod_dat)
+														
+		
+	saveRDS(pcod_temp_int_age_bam_ACLIM_SEBS, 
+  				file = here("./output/model output/ACLIM temps/pcod_temp_int_age_bam_ACLIM_SEBS.rds"))
+  
+ 
+	# yfin sole #
+	
+	# 1. weight ~ age + temp
+	yfin_temp_age_bam_ACLIM_SEBS <- bam(log_wt ~ age_f + s(SEBS_mean_sum_temp) + s(julian_day) + 
+													te(latitude, longitude) + 
+													s(ID_f, bs = "re") + # haul in year random effect
+								 					s(haul_id_f, bs = "re") + # haul in year random effect
+								 					s(cohort_f, bs = "re"),
+													data = yfinsole_dat)
+														
+	saveRDS(yfin_temp_age_bam_ACLIM_SEBS, 
+  				file = here("./output/model output/ACLIM temps/yfin_temp_age_bam_ACLIM_SEBS.rds"))
+ 
+
+  # 2. weight ~ age * temp
+	yfin_temp_int_age_bam_ACLIM_SEBS <- bam(log_wt ~ age_f + 
+																		 	s(SEBS_mean_sum_temp, by = age_f) + 
+																		 	s(julian_day) + 
+													te(latitude, longitude) + 
+													s(ID_f, bs = "re") + # haul in year random effect
+								 					s(haul_id_f, bs = "re") + # haul in year random effect
+								 					s(cohort_f, bs = "re"),
+													data = yfinsole_dat)
+		
+	saveRDS(yfin_temp_int_age_bam_ACLIM_SEBS, 
+  				file = here("./output/model output/ACLIM temps/yfin_temp_int_age_bam_ACLIM_SEBS.rds"))
+
+
+	#### yearly temps ACLIM ####
+	
+		# pollock #	
+  
+	#1. weight ~ age + temp
+	pol_yrtemp_age_bam_ACLIM_SEBS <- bam(log_wt ~ age_f + s(SEBS_mean_yr_temp) + s(julian_day) + 
+													te(latitude, longitude) + 
+													s(ID_f, bs = "re") + # haul in year random effect
+								 					s(haul_id_f, bs = "re") + # haul in year random effect
+								 					s(cohort_f, bs = "re"),
+													data = pollock_dat)
+	
+
+  saveRDS(pol_yrtemp_age_bam_ACLIM_SEBS, 
+  				file = here("./output/model output/ACLIM temps/pol_yrtemp_age_bam_ACLIM_SEBS.rds"))
+  
+  # 2. weight ~ age * temp
+	pol_yrtemp_int_age_bam_ACLIM_SEBS <- bam(log_wt ~ age_f + s(SEBS_mean_yr_temp, by = age_f) + 
+													s(julian_day) + 
+													te(latitude, longitude) + 
+													s(ID_f, bs = "re") + # haul in year random effect
+								 					s(haul_id_f, bs = "re") + # haul in year random effect
+								 					s(cohort_f, bs = "re"),
+													data = pollock_dat)
+														
+		
+	saveRDS(pol_yrtemp_int_age_bam_ACLIM_SEBS, 
+  				file = here("./output/model output/ACLIM temps/pol_yrtemp_int_age_bam_ACLIM_SEBS.rds"))
+  
+
+	# pcod #
+	
+	#1. weight ~ age + temp
+	pcod_yrtemp_age_bam_ACLIM_SEBS <- bam(log_wt ~ age_f + s(SEBS_mean_yr_temp) + s(julian_day) + 
+													te(latitude, longitude) + 
+													s(ID_f, bs = "re") + # haul in year random effect
+								 					s(haul_id_f, bs = "re") + # haul in year random effect
+								 					s(cohort_f, bs = "re"),
+													data = pcod_dat)
+	
+	saveRDS(pcod_yrtemp_age_bam_ACLIM_SEBS, 
+  				file = here("./output/model output/ACLIM temps/pcod_yrtemp_age_bam_ACLIM_SEBS.rds"))
+ 
+														
+
+  # 2. weight ~ age * temp
+	pcod_yrtemp_int_age_bam_ACLIM_SEBS <- bam(log_wt ~ age_f + s(SEBS_mean_yr_temp, by = age_f) + s(julian_day) + 
+													te(latitude, longitude) + 
+													s(ID_f, bs = "re") + # haul in year random effect
+								 					s(haul_id_f, bs = "re") + # haul in year random effect
+								 					s(cohort_f, bs = "re"),
+													data = pcod_dat)
+														
+		
+	saveRDS(pcod_yrtemp_int_age_bam_ACLIM_SEBS, 
+  				file = here("./output/model output/ACLIM temps/pcod_yrtemp_int_age_bam_ACLIM_SEBS.rds"))
+  
+ 
+	# yfin sole #
+	
+	# 1. weight ~ age + temp
+	yfin_yrtemp_age_bam_ACLIM_SEBS <- bam(log_wt ~ age_f + s(SEBS_mean_yr_temp) + s(julian_day) + 
+													te(latitude, longitude) + 
+													s(ID_f, bs = "re") + # haul in year random effect
+								 					s(haul_id_f, bs = "re") + # haul in year random effect
+								 					s(cohort_f, bs = "re"),
+													data = yfinsole_dat)
+														
+	saveRDS(yfin_yrtemp_age_bam_ACLIM_SEBS, 
+  				file = here("./output/model output/ACLIM temps/yfin_yrtemp_age_bam_ACLIM_SEBS.rds"))
+ 
+
+  # 2. weight ~ age * temp
+	yfin_yrtemp_int_age_bam_ACLIM_SEBS <- bam(log_wt ~ age_f + 
+																		 	s(SEBS_mean_yr_temp, by = age_f) + 
+																		 	s(julian_day) + 
+													te(latitude, longitude) + 
+													s(ID_f, bs = "re") + # haul in year random effect
+								 					s(haul_id_f, bs = "re") + # haul in year random effect
+								 					s(cohort_f, bs = "re"),
+													data = yfinsole_dat)
+		
+	saveRDS(yfin_yrtemp_int_age_bam_ACLIM_SEBS, 
+  				file = here("./output/model output/ACLIM temps/yfin_yrtemp_int_age_bam_ACLIM_SEBS.rds"))
