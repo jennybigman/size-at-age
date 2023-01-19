@@ -69,10 +69,6 @@
   
   SEBS_ACLIM_hind_temps <- left_join(SEBS_ACLIM_temp_hind_sum_mean, SEBS_ACLIM_temp_hind_yr_mean)
 
-  # temp to maturity
-  
-  
-  
 	# specimen data
 	specimen_dat <- read.csv(file = here("./data/df_list_wrangled_names.csv"))
 
@@ -244,7 +240,69 @@
 
 	glimpse(yfinsole_dat)
 
+	
+	# temp to maturity
+  
+  # temp during first year of life ####
+  
+	# for each cohort of each species, in what year were they age 1
 
+	# create a function to add in avg temp during year 1 ####
+			
+	hind_temps <- SEBS_ACLIM_temp_hind_yr_mean %>%
+		dplyr::select(year, SEBS_mean_yr_temp)
+
+	# function to add temp during age1
+	cohort_temp_func <- function(df){
+		
+		cohorts <- df %>%
+			dplyr::select(cohort_f, cohort) %>%
+			rename(year = cohort) %>%
+			distinct()
+		
+		cohort_temps <- left_join(cohorts, hind_temps) %>%
+			rename(temp_firstyr = SEBS_mean_yr_temp) %>%
+			dplyr::select(-year)
+	
+		dat <- left_join(df, cohort_temps)
+
+	}	
+	
+	dat_list <- lapply(list(pollock_dat, pcod_dat, yfinsole_dat), cohort_temp_func)
+	
+	pollock_dat <- dat_list[[1]]
+	pcod_dat <- dat_list[[2]]
+	yfinsole_dat <- dat_list[[3]]
+	
+	# function to add temp age0-1
+	
+		temp_age0_func <- function(df){
+		
+		df <- df %>%
+		mutate(year_age0 = cohort - 1,
+					 year_age0_f = as.factor(year_age0))
+		
+	yr_age0_dat <- df %>%
+			dplyr::select(year_age0_f, year_age0) %>%
+			rename(year = year_age0) %>%
+			distinct()
+		
+	yr_age0_temps <- left_join(yr_age0_dat, hind_temps) %>%
+			rename(temp_age0 = SEBS_mean_yr_temp) %>%
+			dplyr::select(-year)
+	
+	dat <- left_join(df, yr_age0_temps)
+	
+
+	}	
+	
+	dat_list <- lapply(list(pollock_dat, pcod_dat, yfinsole_dat), temp_age0_func)
+	
+	pollock_dat <- dat_list[[1]]
+	pcod_dat <- dat_list[[2]]
+	yfinsole_dat <- dat_list[[3]]
+	
+	
 	# beepr function shortcut
 	
 	beep <- function(x = "fanfare"){
