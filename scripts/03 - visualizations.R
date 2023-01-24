@@ -67,12 +67,12 @@
 		
 	# pcod ####
 	
-	pcod_yrtemp_int_age_bam_ACLIM_SEBS <- readRDS(file = here("./output/model output/ACLIM temps/pcod_yrtemp_int_age_bam_ACLIM_SEBS.rds"))
+	pcod_temp1_int_age_bam_ACLIM_SEBS <- readRDS(file = here("./output/model output/ACLIM temps/pcod_temp1_int_age_bam_ACLIM_SEBS.rds"))
 
-	pcod_plot <- visreg(pcod_yrtemp_int_age_bam_ACLIM_SEBS, "SEBS_mean_yr_temp", by = "age_f",
+	pcod_plot <- visreg(pcod_temp1_int_age_bam_ACLIM_SEBS_ML, "temp_firstyr", by = "age_f",
 										 gg = TRUE, partial = FALSE, rug = FALSE) +
 		ylab("partial effect log\nscaled weight-at-age") +
-		xlab("yearly-averaged temperature (˚C)") +
+		xlab("temperature (˚C) during\nfirst year of life") +
 		facet_wrap(~ age_f, ncol = 6) 
 
 	ggsave(file = here("./output/plots/pcod_plot.png"),
@@ -80,12 +80,12 @@
 	
 	# yfin sole ####
 	
-	yfin_temp_int_age_bam_ACLIM_SEBS <- readRDS(file = here("./output/model output/ACLIM temps/yfin_temp_int_age_bam_ACLIM_SEBS.rds"))
+	yfin_temp1_int_age_bam_ACLIM_SEBS_ML <- readRDS(file = here("./output/model output/ACLIM temps/yfin_temp1_int_age_bam_ACLIM_SEBS_ML.rds"))
 
-	yfin_plot <- visreg(yfin_temp_int_age_bam_ACLIM_SEBS, "SEBS_mean_sum_temp", by = "age_f",
+	yfin_plot <- visreg(yfin_temp1_int_age_bam_ACLIM_SEBS_ML, "temp_firstyr", by = "age_f",
 										 gg = TRUE, partial = FALSE, rug = FALSE) +
 		ylab("partial effect log\nscaled weight-at-age") +
-		xlab("mean temperature April - June (˚C)") +
+		xlab("temperature (˚C) during\nfirst year of life") +
 		facet_wrap(~ age_f, ncol = 9) 
 
 	ggsave(file = here("./output/plots/yfin_plot.png"),
