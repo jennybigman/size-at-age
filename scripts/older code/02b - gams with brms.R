@@ -54,14 +54,14 @@
 
 	# load models 
 	poll_temp_age_gam_brms <- readRDS(file = "./output/model output/poll_temp_age_gam.rds")
-	poll_temp_int_age_gam_brms <- readRDS(file = "./output/model output/poll_temp_int_age_gam.rds")
+	poll_temp_int_age_gam_brms <- readRDS(file = "./output/model output/older model output/poll_temp_int_age_gam.rds")
 	
 	# compare models
 	loo(poll_temp_age_gam_brms, re_loo = TRUE)
 	loo(poll_temp_int_age_gam_brms, re_loo = TRUE) 
 
 	## plot ##
-	poll_temp_age_int_mod_ms <- conditional_smooths(poll_temp_int_age_gam)
+	poll_temp_age_int_mod_ms <- conditional_smooths(poll_temp_int_age_gam_brms)
 
 	poll_temp_age_int_df <- poll_temp_age_int_mod_ms[[1]] %>%
 		mutate(age = as.numeric(age_f),
@@ -72,11 +72,11 @@
 	
 	poll_temp_age_int_brms_plot <- 
 		ggplot(poll_temp_age_int_df) +
-		geom_ribbon(aes(ymin = lwr, ymax = upr, x = mean_sum_temp), fill = "grey30") +
-		geom_line(aes(mean_sum_temp, estimate), color = "white") +
+		geom_ribbon(aes(ymin = lwr, ymax = upr, x = mean_sum_temp), fill = "lightgrey") +
+		geom_line(aes(mean_sum_temp, estimate), color = "black") +
 		facet_wrap(~age_f, ncol = 5) +
 		scale_x_continuous(
-			name = "mean summer temperature (˚C)",
+			name = "mean summer temperature (April - June) (˚C)",
 			breaks = c(0, 1, 2),
 			labels = c(0, 1, 2)
 		) +
@@ -86,16 +86,16 @@
 			labels = c(-0.2, 0, 0.2)
 		) +
 		theme(
-			strip.text = element_text(color = "white"),
+			strip.text = element_text(color = "black"),
 			strip.background = element_blank(),
-			panel.border = element_rect(color = "white", fill = NA),
-			axis.text=element_text(colour = "white"),
-  		axis.title= element_text(color = "white"),
-  		axis.line = element_line(color = "white"),
-  		axis.ticks = element_line(colour = "white"),
-  		panel.background = element_rect(fill = "black"),
+			panel.border = element_rect(color = "black", fill = NA),
+			axis.text=element_text(colour = "black"),
+  		axis.title= element_text(color = "black"),
+  		axis.line = element_line(color = "black"),
+  		axis.ticks = element_line(colour = "black"),
+  		panel.background = element_rect(fill = "white"),
 			panel.grid = element_blank(),
-  		plot.background = element_rect(fill = "black", color = "black"))
+  		plot.background = element_rect(fill = "white", color = "white"))
 	
 	
 	ggsave(file = here("./output/plots/poll_temp_age_int_brms_plot.png"),
@@ -174,7 +174,7 @@
 
 	# load models 
 	pcod_temp_age_gam <- readRDS(file = "./output/model output/pcod_temp_age_gam.rds")
-	pcod_temp_int_age_gam <- readRDS(file = "./output/model output/pcod_temp_int_age_gam.rds")
+	pcod_temp_int_age_gam <- readRDS(file = "./output/model output/older model output/pcod_temp_int_age_gam.rds")
 	
 	# compare models
 	loo(pcod_temp_age_gam) #looic = -17132.5 #elpd_loo = 8566.3
@@ -199,24 +199,26 @@
 					 age_f = fct_reorder(age_f, age)) %>%
 		rename(estimate = estimate__,
 					 lwr = lower__,
-					 upr = upper__)
+					 upr = upper__) %>%
+		filter(age_f == 1:10)
 	
 	pcod_temp_age_int_brms_plot <- 
 		ggplot(pcod_temp_age_int_df) +
-		geom_ribbon(aes(ymin = lwr, ymax = upr, x = mean_sum_temp), fill = "grey") +
-		geom_line(aes(mean_sum_temp, estimate), color = "white") +
-		facet_wrap(~age_f) +
+		geom_ribbon(aes(ymin = lwr, ymax = upr, x = mean_sum_temp), fill = "lightgrey") +
+		geom_line(aes(mean_sum_temp, estimate), color = "black") +
+		facet_wrap(~age_f, ncol = 5) +
 		theme(
-			strip.text = element_text(color = "white"),
+			strip.text = element_text(color = "black"),
 			strip.background = element_blank(),
-			panel.border = element_rect(color = "white", fill = NA),
-			axis.text=element_text(colour = "white"),
-  		axis.title= element_text(color = "white"),
-  		axis.line = element_line(color = "white"),
-  		axis.ticks = element_line(colour = "white"),
-  		panel.background = element_rect(fill = "black"),
+			panel.border = element_rect(color = "black", fill = NA),
+			axis.text=element_text(colour = "black"),
+  		axis.title= element_text(color = "black"),
+  		axis.line = element_line(color = "black"),
+  		axis.ticks = element_line(colour = "black"),
+  		panel.background = element_rect(fill = "white"),
 			panel.grid = element_blank(),
-  		plot.background = element_rect(fill = "black", color = "black"))
+  		plot.background = element_rect(fill = "white", color = "white"))
+	
 	
 	
 ############ old
@@ -305,7 +307,7 @@
 
 	# load models 
 	yfin_temp_age_gam <- readRDS(file = "./output/model output/yfin_temp_age_gam.rds")
-	yfin_temp_int_age_gam <- readRDS(file = "./output/model output/yfin_temp_int_age_gam.rds")
+	yfin_temp_int_age_gam <- readRDS(file = "./output/model output/older model output/yfin_temp_int_age_gam.rds")
 
 	
 	# compare models
@@ -313,13 +315,15 @@
 	loo(yfin_temp_int_age_glm) # looic =   ; elpdloo = 
 
 	# plot predictions
-	
-	yfin_temp_age_int_df <- yfin_temp_int_age_gam[[1]] %>%
+	yfin_temp_age_mod_ms <- conditional_smooths(yfin_temp_int_age_gam)
+
+	yfin_temp_age_int_df <- yfin_temp_age_mod_ms[[1]] %>%
 		mutate(age = as.numeric(age_f),
 					 age_f = fct_reorder(age_f, age)) %>%
 		rename(estimate = estimate__,
 					 lwr = lower__,
-					 upr = upper__)
+					 upr = upper__) %>%
+		filter(age_f == 1:17)
 	
 	ggplot(yfin_temp_age_int_df) +
 		geom_ribbon(aes(ymin = lwr, ymax = upr, x = mean_sum_temp), fill = "grey") +

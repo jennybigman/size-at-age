@@ -49,7 +49,7 @@
 				 file = here("./output/plots/map_haul_locations.png"))
 
 
-	#### mapping model output ####
+	#### plotting model output ####
 	
 	# pollock ####
 	
@@ -59,7 +59,8 @@
 										 gg = TRUE, partial = FALSE, rug = FALSE) +
 		ylab("partial effect log\nscaled weight-at-age") +
 		xlab("mean temperature April - June (˚C)") +
-		facet_wrap(~ age_f, ncol = 5) 
+		facet_wrap(~ age_f, ncol = 5) +
+		theme_classic() 
 
 	ggsave(file = here("./output/plots/pol_plot2.png"),
 			 pol_plot)
@@ -80,7 +81,7 @@
 	
 	# yfin sole ####
 	
-	yfin_temp1_int_age_bam_ACLIM_SEBS_ML <- readRDS(file = here("./output/model output/ACLIM temps/yfin_temp1_int_age_bam_ACLIM_SEBS_ML.rds"))
+	yfin_temp1_int_age_bam_ACLIM_SEBS <- readRDS(file = here("./output/model output/ACLIM temps/yfin_temp1_int_age_bam_ACLIM_SEBS.rds"))
 
 	yfin_plot <- visreg(yfin_temp1_int_age_bam_ACLIM_SEBS_ML, "temp_firstyr", by = "age_f",
 										 gg = TRUE, partial = FALSE, rug = FALSE) +

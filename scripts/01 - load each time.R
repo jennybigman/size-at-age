@@ -1,7 +1,6 @@
 # load each time
 
  # for screen
- setwd("/Users/jenniferbigman/Dropbox/NOAA AFSC Postdoc/temp, growth, size project/size-at-age")
 
 	library(here)
 	library(tidyverse)
@@ -20,56 +19,7 @@
 	library(sf)
 	library(AICcmodavg)
 
-	#### temp data ####
-	
-	# ROMS temps from Pcod paper ####
-	
-	# yearly-averaged hindcast temp output
-	ROMS_bot_temp_yr <- fread(here("./data/ROMS_bot_temp_yr.csv")) %>%
-		rename(yr_mean_temp = mean_temp)
-	
-	# summer averaged temp output
-	ROMS_sum_temp_avg <- fread(here("./data/ROMS_sum_temp_avg.csv"))
-
-	# join temp data
-	ROMS_hind_temps <- merge(ROMS_bot_temp_yr, ROMS_sum_temp_avg,
-											by = c("year"))
-	
-	# ACLIM bc temps ####
-	
-	load("../../ACLIM2/Data/out/K20P19_CMIP6/allEBS_means/ACLIM_weekly_hind_mn.Rdata")
-
-  temp_hind <- ACLIM_weekly_hind %>%
-    filter(var == "temp_bottom5m")
-
-  sum_mo <- 4:6
-  
-  ACLIM_temp_hind_sum_mean <- temp_hind %>%
-  	filter(mo %in% sum_mo) %>%
-  	group_by(year) %>%
-  	summarise(mean_temp_sum_ACLIM = mean(mn_val))
-
-  ACLIM_temp_hind_yr_mean <- temp_hind %>%
-  	group_by(year) %>%
-  	summarise(mean_temp_yr_ACLIM = mean(mn_val))
-  
-  ACLIM_hind_temps <- left_join(ACLIM_temp_hind_yr_mean, ACLIM_temp_hind_sum_mean)
-	
-  # keep basin separate 
-  SEBS_ACLIM_temp_hind_sum_mean <- temp_hind %>%
-  	filter(mo %in% sum_mo) %>%
-  	filter(basin == "SEBS") %>%
-  	group_by(year) %>%
-  	summarise(SEBS_mean_sum_temp = mean(mn_val))
-
-  SEBS_ACLIM_temp_hind_yr_mean <- temp_hind %>%
-  	filter(basin == "SEBS") %>%
-  	group_by(year) %>%
-  	summarise(SEBS_mean_yr_temp = mean(mn_val))
-  
-  SEBS_ACLIM_hind_temps <- left_join(SEBS_ACLIM_temp_hind_sum_mean, SEBS_ACLIM_temp_hind_yr_mean)
-
-	# specimen data
+	#### specimen data ####
 	specimen_dat <- read.csv(file = here("./data/df_list_wrangled_names.csv"))
 
 	# how many NAs per species do I have
@@ -90,23 +40,42 @@
 	specimen_dat_list <- specimen_dat %>%
   	group_split(species) 
 	
+	## set up random effects ###
 	
-	# merge with temp
+	
+	#### ACLIM temp data ####
+	
+  # bias corrected using delta method
+  load("../../ACLIM2/Data/out/K20P19_CMIP6/allEBS_means/ACLIM_weekly_hind_mn.Rdata")
+  load("../../ACLIM2/Data/out/K20P19_CMIP6/allEBS_means/ACLIM_weekly_fut_mn.Rdata")
+
+  # newest ACLIM indices but 3 basins (NEBS, SEBS, other?)
+  #load("../../ACLIM2/Data/out/Feb 13/K20P19_CMIP6/allEBS_means/ACLIM_weekly_hind_mn.Rdata")
+  #load("../../ACLIM2/Data/out/Feb 13/K20P19_CMIP6/allEBS_means/ACLIM_weekly_fut_mn.Rdata")
+
+  # filter out bottom temps
+  temp_hind <- ACLIM_weekly_hind %>%
+    filter(var == "temp_bottom5m")
+  
+  temp_proj <- ACLIM_weekly_fut %>%
+    filter(var == "temp_bottom5m")
+
+  # summarise temperature into metrics for modeling
+
+	## merge with temp ##
 	temp_join_func <- function(x){
  
- 		specimen_dat <- left_join(x, ROMS_hind_temps, by = "year")
- 		specimen_dat <- left_join(specimen_dat, ACLIM_hind_temps, by = "year")
+ 		specimen_dat <- left_join(x, ACLIM_hind_temps, by = "year")
  		specimen_dat <- left_join(specimen_dat, SEBS_ACLIM_hind_temps, by = "year")
  		
 	}
  
 	spec_temp_dat <- lapply(specimen_dat_list, temp_join_func)
 
-
 	# individual data sets ####
 	
 	# pollock #
-	pollock_dat <- spec_temp_dat[[2]] %>%
+	pollock_dat <- spec_temp_dat[[1]] %>%
 		rename(julian_day = jday)
 
 	pollock_dat$age_f <- as_factor(pollock_dat$age)
@@ -240,7 +209,6 @@
 
 	glimpse(yfinsole_dat)
 
-  
   # temp during age 1 ####
   
 	# create a function to add in avg temp during year 1 ####
@@ -459,7 +427,8 @@
 		left_join(pcod_age4_dat, hind_temps, by=c('year0'='year')) %>%
 		left_join(., hind_temps, by=c('year1'='year')) %>%
 		left_join(., hind_temps, by=c('year2'='year')) %>%
-		left_join(., hind_temps, by=c('year3'='year'))
+		left_join(., hind_temps, by=c('year3'='year')) %>%
+		left_join(., hind_temps, by=c('year4'='year'))
 	
 	pcod_age4_dat <- pcod_age4_dat %>% 
 		select(age, cohort, contains("SEBS")) %>%
@@ -496,6 +465,148 @@
 
 	pcod_dat <- left_join(pcod_dat, pcod_temp_mat, by = c("age", "cohort"))
 	
+	# yellowfin ####
+	
+ 	# unique age and cohorts
+  yfin_dat_cohorts <- yfinsole_dat %>%
+ 		dplyr::select(age, cohort) %>%
+  	distinct() %>%
+  	group_by(age)
+
+	yfin_dat_list <- group_split(yfin_dat_cohorts)
+
+	# age 1
+	yfin_age1_dat <- yfin_dat_list[[1]] %>% 
+		mutate(year0 = cohort,
+					 year1 = cohort + 1)
+	
+	yfin_age1_dat <- 
+		left_join(yfin_age1_dat, hind_temps, by=c('year0'='year')) %>%
+		left_join(., hind_temps, by=c('year1'='year')) 
+
+	yfin_age1_dat <- yfin_age1_dat %>% 
+		select(age, cohort, contains("SEBS")) %>%
+		mutate(temp_mat = rowMeans(select(., starts_with("SEBS"))))  %>%
+		select(age, cohort, temp_mat)
+
+
+	# age 2
+	yfin_age2_dat <- yfin_dat_list[[2]] %>%
+		mutate(year0 = cohort,
+					 year1 = cohort + 1,
+					 year2 = cohort + 2)
+	
+	yfin_age2_dat <- 
+		left_join(yfin_age2_dat, hind_temps, by=c('year0'='year')) %>%
+		left_join(., hind_temps, by=c('year1'='year')) %>%
+		left_join(., hind_temps, by=c('year2'='year')) 
+
+	
+	yfin_age2_dat <- yfin_age2_dat %>% 
+		select(age, cohort, contains("SEBS")) %>%
+		mutate(temp_mat = rowMeans(select(., starts_with("SEBS"))))  %>%
+		select(age, cohort, temp_mat)
+	
+	# age 3
+	yfin_age3_dat <- yfin_dat_list[[3]] %>%
+		mutate(year0 = cohort,
+					 year1 = cohort + 1,
+					 year2 = cohort + 2,
+					 year3 = cohort + 3)
+																 
+	yfin_age3_dat <- 
+		left_join(yfin_age3_dat, hind_temps, by=c('year0'='year')) %>%
+		left_join(., hind_temps, by=c('year1'='year')) %>%
+		left_join(., hind_temps, by=c('year2'='year')) %>%
+		left_join(., hind_temps, by=c('year3'='year'))
+	
+	yfin_age3_dat <- yfin_age3_dat %>% 
+		select(age, cohort, contains("SEBS")) %>%
+		mutate(temp_mat = rowMeans(select(., starts_with("SEBS"))))  %>%
+		select(age, cohort, temp_mat)
+	
+	# age 4
+	yfin_age4_dat <- yfin_dat_list[[4]] %>%
+		mutate(year0 = cohort,
+					 year1 = cohort + 1,
+					 year2 = cohort + 2,
+					 year3 = cohort + 3,
+					 year4 = cohort + 4)
+																 
+	yfin_age4_dat <- 
+		left_join(yfin_age4_dat, hind_temps, by=c('year0'='year')) %>%
+		left_join(., hind_temps, by=c('year1'='year')) %>%
+		left_join(., hind_temps, by=c('year2'='year')) %>%
+		left_join(., hind_temps, by=c('year3'='year')) %>%
+		left_join(., hind_temps, by=c('year4'='year'))
+	
+	yfin_age4_dat <- yfin_age4_dat %>% 
+		select(age, cohort, contains("SEBS")) %>%
+		mutate(temp_mat = rowMeans(select(., starts_with("SEBS"))))  %>%
+		select(age, cohort, temp_mat)
+	
+	# age 5
+		yfin_age5_dat <- yfin_dat_list[[5]] %>%
+		mutate(year0 = cohort,
+					 year1 = cohort + 1,
+					 year2 = cohort + 2,
+					 year3 = cohort + 3,
+					 year4 = cohort + 4,
+					 year5 = cohort + 5)
+																 
+	yfin_age5_dat <- 
+		left_join(yfin_age5_dat, hind_temps, by=c('year0'='year')) %>%
+		left_join(., hind_temps, by=c('year1'='year')) %>%
+		left_join(., hind_temps, by=c('year2'='year')) %>%
+		left_join(., hind_temps, by=c('year3'='year')) %>%
+		left_join(., hind_temps, by=c('year4'='year')) %>%
+		left_join(., hind_temps, by=c('year5'='year'))
+	
+	yfin_age4_dat <- yfin_age4_dat %>% 
+		select(age, cohort, contains("SEBS")) %>%
+		mutate(temp_mat = rowMeans(select(., starts_with("SEBS"))))  %>%
+		select(age, cohort, temp_mat)
+	
+	# age 6
+	
+	# age 7
+	
+	# age 8
+	
+	# age 9 
+	
+	# age 10
+	
+
+	# age 11 through 17 ---- EDIT ########
+	pcod_age5_dat <- pcod_dat_list[c(11:10)] %>%
+		bind_rows()
+	
+	pcod_age5_dat <- pcod_age5_dat %>%
+		mutate(year0 = cohort,
+					 year1 = cohort + 1,
+					 year2 = cohort + 2,
+					 year3 = cohort + 3,
+					 year4 = cohort + 4,
+					 year5 = cohort + 5)
+		
+	pcod_age5_dat <- 
+		left_join(pcod_age5_dat, hind_temps, by=c('year0'='year')) %>%
+		left_join(., hind_temps, by=c('year1'='year')) %>%
+		left_join(., hind_temps, by=c('year2'='year')) %>%
+		left_join(., hind_temps, by=c('year3'='year')) %>%
+		left_join(., hind_temps, by=c('year4'='year')) %>%
+		left_join(., hind_temps, by=c('year5'='year')) 
+
+	
+	pcod_age5_dat <- pcod_age5_dat %>% 
+		select(age, cohort, contains("SEBS")) %>%
+		mutate(temp_mat = rowMeans(select(., starts_with("SEBS")))) %>%
+		select(age, cohort, temp_mat)
+	
+	pcod_temp_mat <- bind_rows(pcod_age1_dat, pcod_age2_dat, pcod_age3_dat, pcod_age4_dat)
+
+	pcod_dat <- left_join(pcod_dat, pcod_temp_mat, by = c("age", "cohort"))
 	
 	
 	
