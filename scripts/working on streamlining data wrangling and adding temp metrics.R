@@ -111,15 +111,15 @@
  
 	specimen_temp_dat <- lapply(specimen_temp_dat, temp_join_func)
 
+  df_test <- specimen_temp_dat[[1]]
   
   #### 3. temp during first year of life ####
   
-  # temp during first year of life (age 0-1) ####
 
 	temp_age0_func <- function(x){
 		
 		df <- x %>%
-		mutate(year_age0 = cohort - 1,
+		mutate(year_age0 = cohort,
 					 year_age0_f = as.factor(year_age0))
 		
 		yr_age0_dat <- df %>%
@@ -128,7 +128,7 @@
 			distinct()
 		
 		yr_age0_temps <- left_join(yr_age0_dat, temp_yr_prior) %>%
-			rename(temp_age0 = temp_yr_prior) %>%
+			rename(temp_age0 = mean_yr_temp) %>%
 			dplyr::select(-year)
 	
 		dat <- left_join(df, yr_age0_temps)
@@ -138,24 +138,9 @@
 	
 	specimen_temp_dat <- lapply(specimen_temp_dat, temp_age0_func)
 	
-	pollock_dat <- dat_list[[1]]
-	pcod_dat <- dat_list[[2]]
-	yfinsole_dat <- dat_list[[3]]
+	pollock_dat <- specimen_temp_dat[[1]]
+	pcod_dat <- specimen_temp_dat[[2]]
+	yfinsole_dat <- specimen_temp_dat[[3]]
 
   
-  #### add temp data to species data ####
-   
-  ## merge with temp ##
-	temp_join_func <- function(x){
  
- 			specimen_dat <- left_join(x, presurvey_hind, by = "year")
- 			specimen_dat <- left_join(specimen_dat, temp_yr_prior, by = "year")
-	}
- 
-	spec_temp_dat <- lapply(specimen_dat_list, temp_join_func)
-
-	# pollock
-	pollock_dat <- spec_temp_dat[[2]]
-	pcod_dat <- spec_temp_dat[[1]]
-	yfin_dat <- spec_temp_dat[[3]]	
-	
