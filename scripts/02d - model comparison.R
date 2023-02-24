@@ -73,12 +73,16 @@
   pol_yrtemp_int_age_bam_ACLIM_SEBS_ML <- readRDS(file = here("./output/model output/ACLIM temps/ML output/pol_yrtemp_int_age_bam_ACLIM_SEBS_ML.rds"))
   pol_temp1_int_age_bam_ACLIM_SEBS_ML <- readRDS(file = here("./output/model output/ACLIM temps/ML output/pol_temp1_int_age_bam_ACLIM_SEBS_ML.rds"))
   pol_temp0_int_age_bam_ACLIM_SEBS_ML <- readRDS(file = here("./output/model output/ACLIM temps/ML output/pol_temp0_int_age_bam_ACLIM_SEBS_ML.rds"))
+  # linear effect of temp and age
+  pol_presurvey_templin_int_age_bam <- readRDS(file = here("./output/model output/ACLIM temps/linear models/pol_presurvey_templin_int_age_bam.rds"))
 
+  
   # with temp by age effect -- summer avg temp more supported
   AIC(pol_temp_int_age_bam_ACLIM_SEBS_ML)
   AIC(pol_yrtemp_int_age_bam_ACLIM_SEBS_ML)
   AIC(pol_temp1_int_age_bam_ACLIM_SEBS_ML)
   AIC(pol_temp0_int_age_bam_ACLIM_SEBS_ML)
+  AIC(pol_presurvey_templin_int_age_bam)
 
     # pcod 
   
@@ -86,12 +90,16 @@
   pcod_yrtemp_int_age_bam_ACLIM_SEBS_ML <- readRDS(file = here("./output/model output/ACLIM temps/ML output/pcod_yrtemp_int_age_bam_ACLIM_SEBS_ML.rds"))
   pcod_temp1_int_age_bam_ACLIM_SEBS_ML <- readRDS(file = here("./output/model output/ACLIM temps/ML output/pcod_temp1_int_age_bam_ACLIM_SEBS_ML.rds"))
   pcod_temp0_int_age_bam_ACLIM_SEBS_ML <- readRDS(file = here("./output/model output/ACLIM temps/ML output/pcod_temp0_int_age_bam_ACLIM_SEBS_ML.rds"))
+  # linear effect of temp and age
+  pcod_presurvey_templin_int_age_bam <- readRDS(file = here("./output/model output/ACLIM temps/linear models/pcod_presurvey_templin_int_age_bam.rds"))
 
   # with temp by age effect -- temp age1 more supported
   AIC(pcod_temp_int_age_bam_ACLIM_SEBS_ML)
   AIC(pcod_yrtemp_int_age_bam_ACLIM_SEBS_ML)
   AIC(pcod_temp1_int_age_bam_ACLIM_SEBS_ML)
   AIC(pcod_temp0_int_age_bam_ACLIM_SEBS_ML)
+  AIC(pcod_presurvey_templin_int_age_bam)
+
   
     # yfin 
   
@@ -99,9 +107,12 @@
   yfin_yrtemp_int_age_bam_ACLIM_SEBS_ML <- readRDS(file = here("./output/model output/ACLIM temps/ML output/yfin_yrtemp_int_age_bam_ACLIM_SEBS_ML.rds"))
   yfin_temp1_int_age_bam_ACLIM_SEBS_ML <- readRDS(file = here("./output/model output/ACLIM temps/ML output/yfin_temp1_int_age_bam_ACLIM_SEBS_ML.rds"))
   yfin_temp0_int_age_bam_ACLIM_SEBS_ML <- readRDS(file = here("./output/model output/ACLIM temps/ML output/yfin_temp0_int_age_bam_ACLIM_SEBS_ML.rds"))
+  # linear effect of temp and age
+  yfin_presurvey_templin_int_age_bam <- readRDS(file = here("./output/model output/ACLIM temps/linear models/yfin_presurvey_templin_int_age_bam.rds"))
 
     # with temp by age effect -- temp age1 more supported
   AIC(yfin_temp_int_age_bam_ACLIM_SEBS_ML)
   AIC(yfin_yrtemp_int_age_bam_ACLIM_SEBS_ML)
   AIC(yfin_temp1_int_age_bam_ACLIM_SEBS_ML)
   AIC(yfin_temp0_int_age_bam_ACLIM_SEBS_ML)
+  AIC(yfin_presurvey_templin_int_age_bam)
