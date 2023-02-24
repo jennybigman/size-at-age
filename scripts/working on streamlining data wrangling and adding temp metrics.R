@@ -55,6 +55,10 @@
 	#load("../../ACLIM2/Data/out/Feb 13/K20P19_CMIP6/allEBS_means/ACLIM_weekly_hind_mn.Rdata")
   #load("../../ACLIM2/Data/out/Feb 13/K20P19_CMIP6/allEBS_means/ACLIM_weekly_fut_mn.Rdata")
 
+  # for PC
+  load("/data/ACLIM_weekly_hind_mn.Rdata")
+  load("/data/ACLIM_weekly_fut_mn.Rdata")
+
   # filter out bottom temps and stick to SEBS
   temp_hind <- ACLIM_weekly_hind %>%
     filter(var == "temp_bottom5m") %>%
@@ -137,6 +141,14 @@
 	}	
 	
 	specimen_temp_dat <- lapply(specimen_temp_dat, temp_age0_func)
+	
+	# change jday to julian_day to match model parameterization
+	
+	rename_func <- function(x){
+		df <- x %>% rename(julian_day = jday)
+	}
+	
+	specimen_temp_dat <- lapply(specimen_temp_dat, rename_func)
 	
 	pollock_dat <- specimen_temp_dat[[1]]
 	pcod_dat <- specimen_temp_dat[[2]]
