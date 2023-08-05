@@ -432,10 +432,34 @@
 	
 	yrprior_boxy_fit <- lapply(specimen_dat, yrprior_boxy_func)
 
-	  ##### EDIT ####													
-		# saveRDS(pol_yrtemp_age_bam_ML, 
-		#		file = here("./output/model output PC/pol_pretemp_age_bam_ML.rds"))
-	  ##### EDIT ####													
+	# name and save models
+	obj_name_func <- function(x){
+		paste("yrprior_boxy_fit", x, sep ="")
+	}
+
+	sp_names <- c("pcod", "pol", "yfin")
+
+	obj_names <- lapply(sp_names, obj_name_func)
+
+	names(yrprior_boxy_fit) <- obj_names
+
+	name_path_func <- function(x){
+
+		names <- paste0(x, ".rds")
+		paste0(file = here("./output/model output/ACLIM temps/ML output/Aug 2023/", names))
+
+	}
+
+	file_paths <- name_path_func(obj_names)
+
+	mod_save_func <- function(x, y){
+
+		saveRDS(object = x, file = y)
+
+	}
+
+	mapply(mod_save_func, x = yrprior_boxy_fit, y = file_paths)
+													
 
 	# 2. weight ~ age * oxygen 
 	
@@ -451,13 +475,37 @@
 																	method = "ML")
 		}
 	
-		yrprior_boxy_int_fit <- lapply(specimen_dat, yrprior_boxy_int_func)
+	yrprior_boxy_int_fit <- lapply(specimen_dat, yrprior_boxy_int_func)
 	
-	#### EDIT ####													
-	#saveRDS(pol_yrtemp_int_age_bam, 
-  #				file = here("./output/model output/ACLIM temps/pol_yrtemp_int_age_bam.rds"))
-  #### EDIT ####													
+	# name and save models
+	obj_name_func <- function(x){
+		paste("yrprior_boxy_int_fit", x, sep ="")
+	}
 
+	sp_names <- c("pcod", "pol", "yfin")
+
+	obj_names <- lapply(sp_names, obj_name_func)
+
+	names(yrprior_boxy_int_fit) <- obj_names
+
+	name_path_func <- function(x){
+
+		names <- paste0(x, ".rds")
+		paste0(file = here("./output/model output/ACLIM temps/ML output/Aug 2023/", names))
+
+	}
+
+	file_paths <- name_path_func(obj_names)
+
+	mod_save_func <- function(x, y){
+
+		saveRDS(object = x, file = y)
+
+	}
+
+	mapply(mod_save_func, x = yrprior_boxy_int_fit, y = file_paths)
+													
+												
   #### oxygen during first year of life ####
 	
 	#1. weight ~ age + oxygen
@@ -476,11 +524,35 @@
 		
 	firstyr_boxy_fit <- lapply(specimen_dat, firstyr_boxy_func)
 	
-	#### EDIT ####													
-  #saveRDS(pol_temp0_age_bam, file = here("./output/model output/ACLIM temps/pol_temp0_age_bam.rds"))
- 	#### EDIT ####													
+	# name and save models
+	obj_name_func <- function(x){
+		paste("firstyr_boxy_fit", x, sep ="")
+	}
 
+	sp_names <- c("pcod", "pol", "yfin")
 
+	obj_names <- lapply(sp_names, obj_name_func)
+
+	names(firstyr_boxy_fit) <- obj_names
+
+	name_path_func <- function(x){
+
+		names <- paste0(x, ".rds")
+		paste0(file = here("./output/model output/ACLIM temps/ML output/Aug 2023/", names))
+
+	}
+
+	file_paths <- name_path_func(obj_names)
+
+	mod_save_func <- function(x, y){
+
+		saveRDS(object = x, file = y)
+
+	}
+
+	mapply(mod_save_func, x = firstyr_boxy_fit, y = file_paths)
+													
+	
   # 2. weight ~ age * oxygen
 	
 	firstyr_boxy_int_func <- function(df){
@@ -497,6 +569,32 @@
 		
 	firstyr_boxy_int_fit <- lapply(specimen_dat, firstyr_boxy_int_func)
 
-	#### EDIT ####													
-  #saveRDS(pol_temp0_age_bam, file = here("./output/model output/ACLIM temps/pol_temp0_age_bam.rds"))
- 	#### EDIT ####													
+	# name and save models
+	obj_name_func <- function(x){
+		paste("firstyr_boxy_int_fit", x, sep ="")
+	}
+
+	sp_names <- c("pcod", "pol", "yfin")
+
+	obj_names <- lapply(sp_names, obj_name_func)
+
+	names(firstyr_boxy_int_fit) <- obj_names
+
+	name_path_func <- function(x){
+
+		names <- paste0(x, ".rds")
+		paste0(file = here("./output/model output/ACLIM temps/ML output/Aug 2023/", names))
+
+	}
+
+	file_paths <- name_path_func(obj_names)
+
+	mod_save_func <- function(x, y){
+
+		saveRDS(object = x, file = y)
+
+	}
+
+	mapply(mod_save_func, x = firstyr_boxy_int_fit, y = file_paths)
+													
+	
