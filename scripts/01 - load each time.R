@@ -34,7 +34,6 @@
 	specimen_dat$haul <- specimen_dat$haul.x
 	specimen_dat$cohort_f <- as.factor(specimen_dat$cohort_f)
 	
-
 	specimen_dat_list <- list()
  
 	specimen_dat_list <- specimen_dat %>%
@@ -46,12 +45,8 @@
 	#### ACLIM temp data ####
 	
   # bias corrected using delta method
-  load("../../ACLIM2/Data/out/K20P19_CMIP6/allEBS_means/ACLIM_weekly_hind_mn.Rdata")
-  load("../../ACLIM2/Data/out/K20P19_CMIP6/allEBS_means/ACLIM_weekly_fut_mn.Rdata")
-
-  # newest ACLIM indices but 3 basins (NEBS, SEBS, other?)
-  #load("../../ACLIM2/Data/out/Feb 13/K20P19_CMIP6/allEBS_means/ACLIM_weekly_hind_mn.Rdata")
-  #load("../../ACLIM2/Data/out/Feb 13/K20P19_CMIP6/allEBS_means/ACLIM_weekly_fut_mn.Rdata")
+  load("../../ACLIM2/Data/out/Mar 2023/K20P19_CMIP6-001/allEBS_means/ACLIM_weekly_hind_mn.Rdata")
+  load("../../ACLIM2/Data/out/Mar 2023/K20P19_CMIP6-001/allEBS_means/ACLIM_weekly_fut_mn.Rdata")
 
   # filter out bottom temps
   temp_hind <- ACLIM_weekly_hind %>%
@@ -59,13 +54,21 @@
   
   temp_proj <- ACLIM_weekly_fut %>%
     filter(var == "temp_bottom5m")
+  
+  # filter out bottom oxygen
+  oxy_hind <- ACLIM_weekly_hind %>%
+    filter(var == "oxygen_bottom5m")
+  
+  oxy_proj <- ACLIM_weekly_fut %>%
+    filter(var == "oxygen_bottom5m")
+ 
 
-  # summarise temperature into metrics for modeling
+  # summarize environmental metrics for modeling
 
-	## merge with temp ##
+	## merge df with temp ##
 	temp_join_func <- function(x){
  
- 		specimen_dat <- left_join(x, ACLIM_hind_temps, by = "year")
+ 		specimen_dat <- left_join(x, by = "year")
  		specimen_dat <- left_join(specimen_dat, SEBS_ACLIM_hind_temps, by = "year")
  		
 	}
@@ -75,7 +78,7 @@
 	# individual data sets ####
 	
 	# pollock #
-	pollock_dat <- spec_temp_dat[[1]] %>%
+	pollock_df <- spec_temp_dat[[1]] %>%
 		rename(julian_day = jday)
 
 	pollock_dat$age_f <- as_factor(pollock_dat$age)
