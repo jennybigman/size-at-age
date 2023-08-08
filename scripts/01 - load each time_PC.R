@@ -88,12 +88,12 @@
 	# load ACLIM temps
 	
 	# bias corrected using delta method
-  load("../../ACLIM2/Data/out/Mar 2023/K20P19_CMIP6-001/allEBS_means/ACLIM_weekly_hind_mn.Rdata")
-  load("../../ACLIM2/Data/out/Mar 2023/K20P19_CMIP6-001/allEBS_means/ACLIM_weekly_fut_mn.Rdata")
+  #load("../../ACLIM2/Data/out/Mar 2023/K20P19_CMIP6-001/allEBS_means/ACLIM_weekly_hind_mn.Rdata")
+  #load("../../ACLIM2/Data/out/Mar 2023/K20P19_CMIP6-001/allEBS_means/ACLIM_weekly_fut_mn.Rdata")
 
   # for PC
-  #load("/data/ACLIM_weekly_hind_mn.Rdata")
-  #load("/data/ACLIM_weekly_fut_mn.Rdata")
+  load("./data/ACLIM_weekly_hind_mn.Rdata")
+  load("./data/ACLIM_weekly_fut_mn.Rdata")
 
   # filter out bottom temp & oxygen and stick to SEBS
   
