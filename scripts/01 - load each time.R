@@ -16,6 +16,14 @@
 	library(sf)
 	library(AICcmodavg)
 	
+	# ggsave func
+	 ggsave_func <- function(x,y,w = 10,h = 10){
+  	ggsave(plot = x,
+    file = paste(y,".png",sep=""),
+    width = w, height = h, units = "in")
+  }
+  
+	
 	#### read in specimen age & weight data ####
 	
 	specimen_dat <- read.csv(file = here("./data/df_list_wrangled_names.csv"))
@@ -25,8 +33,6 @@
 		dplyr::select(species, age) %>%
 		group_by(species) %>%
 		summarise(NAs = sum(is.na(age))) 
-	
-	# join specimen data and ROMS temp
 	
 	# put each species df into a list
 	specimen_dat$haul <- specimen_dat$haul.x
@@ -170,31 +176,24 @@
 					 year_age0_f = as.factor(year_age0))
 		
 		yr_age0_dat <- df %>%
+			ungroup() %>%
 			dplyr::select(year_age0_f, year_age0) %>%
 			rename(year = year_age0) %>%
 			distinct()
 		
 		yr_age0_vars <- left_join(yr_age0_dat, yr_prior_short) %>%
+			ungroup() %>%
+			mutate(cohort = year) %>%
 			rename(age0_btemp = yrprior_btemp,
 						 age0_boxy = yrprior_boxy) %>%
-			dplyr::select(-year)
-	
+			select(cohort, age0_btemp, age0_boxy) %>%
+			distinct(cohort, .keep_all = T)
+		
 		dat <- left_join(df, yr_age0_vars)
 	
-
 	}	
 	
 	specimen_dat <- lapply(specimen_dat, age0_func)
-	
-	# change jday to julian_day to match model parameterization
-	
-	rename_func <- function(x){
-		df <- x %>% rename(julian_day = jday)
-	}
-	
-	specimen_dat <- lapply(specimen_dat, rename_func)
-	
-	names(specimen_dat) <- c("pcod_dat", "pollock_dat", "yfinsole_dat")
 	
 	# separate for species-specific wrangling tasks
 	pcod_dat <- specimen_dat[[1]]
