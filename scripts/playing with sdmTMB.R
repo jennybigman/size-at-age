@@ -55,6 +55,16 @@
 		spatial = "on",
 		spatiotemporal = "off")
 	# no error
+	
+	fit3_an <- sdmTMB(
+		log_wt_std ~ age_f + s(presurvey_btemp_std, by = age_f),
+		data = dat,
+		mesh = mesh2,
+		anisotropy = TRUE,
+		spatial = "on",
+		spatiotemporal = "off",
+		control = sdmTMBcontrol(nlminb_loops = 2)
+		)
 
 	fit4 <- sdmTMB(
 		log_wt_std ~ age_f + s(presurvey_btemp_std, by = age_f) +
@@ -62,26 +72,43 @@
 		data = dat,
 		mesh = mesh2,
 		spatial = "off",
-		spatiotemporal = "off")
-	
+		spatiotemporal = "off",
+		control = sdmTMBcontrol(nlminb_loops = 2)
+		)
+	# no error
 
 	fit5 <- sdmTMB(
-		log_wt_std ~ age_f + s(presurvey_btemp_std, by = age_f),
+		log_wt_std ~ age_f + s(presurvey_btemp_std, by = age_f) +
+			s(jday) + (1|cohort_f),
 		data = dat,
 		mesh = mesh2,
 		spatial = "on",
-		spatiotemporal = "off")
-
+		spatiotemporal = "off",
+		control = sdmTMBcontrol(nlminb_loops = 4, newton_loops = 4)
+		)
+	# no error
 	
 	fit6 <- sdmTMB(
-		log_wt ~ age_f + s(presurvey_btemp, by = age_f) +
-			s(jday) + (1|cohort_f) + (1|ID_f) + (1|haul_id_f),
+		log_wt ~ age_f + s(presurvey_btemp, by = age_f),
 		data = dat,
 		mesh = mesh,
-		spatial = "off",
+		spatial = "on",
 		time = "year",
 		spatiotemporal = "IID",
-		reml = TRUE)
+		control = sdmTMBcontrol(nlminb_loops = 4, newton_loops = 4)
+	)
+	# no error
+	
+	fit7 <- sdmTMB(
+		log_wt ~ age_f + s(presurvey_btemp, by = age_f) +s(jday),
+		data = dat,
+		mesh = mesh,
+		spatial = "on",
+		time = "year",
+		spatiotemporal = "IID",
+		control = sdmTMBcontrol(nlminb_loops = 4, newton_loops = 4)
+	)
+
 	
 	fit4 <- sdmTMB(
 		log_wt ~ age_f + s(presurvey_btemp, by = age_f) +
