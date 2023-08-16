@@ -23,6 +23,10 @@
     width = w, height = h, units = "in")
   }
   
+	# beep function
+	beep <- function(x = "fanfare"){
+		beepr::beep(x)
+	}
 	
 	#### read in specimen age & weight data ####
 	
