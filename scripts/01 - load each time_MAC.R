@@ -77,17 +77,15 @@
 		mutate(mean_wt_age = mean(log_wt),
 					 sd_wt_age = sd(log_wt)) %>%
 		rowwise() %>%
-		mutate(log_wt_scaled = (log_wt - mean_wt_age)/sd_wt_age)
+		mutate(log_wt_std = (log_wt - mean_wt_age)/sd_wt_age)
 	
 	}
 	
 	specimen_dat_list <- lapply(specimen_dat_list, weight_metrics_func)
 	
-	#### temp output ####
-	
-	# load ACLIM temps
-	
-	# bias corrected using delta method
+	#### ROMS output ####
+
+	# read in CMIP6 ROMS output
   load("../../ACLIM2/Data/out/Mar 2023/K20P19_CMIP6-001/allEBS_means/ACLIM_weekly_hind_mn.Rdata")
   load("../../ACLIM2/Data/out/Mar 2023/K20P19_CMIP6-001/allEBS_means/ACLIM_weekly_fut_mn.Rdata")
 
