@@ -1,5 +1,4 @@
-
-	library(sdmTMB)
+	
 	
 	dat <- pollock_dat %>% select(-X)
 	
@@ -15,21 +14,26 @@
 	dat <- add_utm_columns(
 		dat, c("longitude", "latitude"))
 	
-	mesh <- make_mesh(dat, xy_cols = c("X", "Y"), cutoff = 10)
-	mesh2 <- make_mesh(dat, c("X", "Y"), n_knots = 800, type = "kmeans")
-	mesh$mesh$n
-	plot(mesh)
+	mesh <- make_mesh(dat, xy_cols = c("X", "Y"), cutoff = 20)
+	#mesh2 <- make_mesh(dat, c("X", "Y"), n_knots = 800, type = "kmeans")
+	#mesh$mesh$n
+	#plot(mesh)
 	
 	dat$presurvey_btemp_std <- (dat$presurvey_btemp - mean(dat$presurvey_btemp)/sd(dat$presurvey_btemp))
-	
-	# playing with parameterizations
+	dat$jday_std <- (dat$jday - mean(dat$jday)/sd(dat$jday))
+
+		# playing with parameterizations
+
+	#plan(multisession)
 	
 	fit1 <- sdmTMB(
-		log_wt ~ age_f + s(presurvey_btemp_std),
+		log_wt_std ~ age_f + s(presurvey_btemp_std),
 		data = dat,
 		mesh = mesh,
 		spatial = "off",
-		spatiotemporal = "off")
+		spatiotemporal = "off",
+		)
+	
 	# no error
 	
 	fit2 <- sdmTMB(
@@ -100,37 +104,29 @@
 	# no error
 	
 	fit7 <- sdmTMB(
-		log_wt ~ age_f + s(presurvey_btemp, by = age_f) +s(jday),
+		log_wt_std ~ age_f + s(presurvey_btemp_std, by = age_f) + s(jday_std),
 		data = dat,
 		mesh = mesh,
 		spatial = "on",
 		time = "year",
 		spatiotemporal = "IID",
-		control = sdmTMBcontrol(nlminb_loops = 4, newton_loops = 4)
+		anisotropy = TRUE,
+		control = sdmTMBcontrol(nlminb_loops = 5, newton_loops = 5)
 	)
+	# no error
 
 	
-	fit4 <- sdmTMB(
-		log_wt ~ age_f + s(presurvey_btemp, by = age_f) +
-			(1|cohort_f) + (1|jday_f) + (1|ID_f) + (1|haul_id_f),
+	fit8 <- sdmTMB(
+		log_wt_std ~ age_f + s(presurvey_btemp_std) + s(jday_std),
 		data = dat,
 		mesh = mesh,
 		spatial = "on",
 		time = "year",
 		spatiotemporal = "IID",
-		reml = TRUE
+		anisotropy = TRUE #,
+		#control = sdmTMBcontrol(nlminb_loops = 2, newton_loops = 2)
 	)
 	
-	fit5 <- sdmTMB(
-		log_wt ~ age_f + s(presurvey_btemp, by = age_f) +
-			(1|cohort_f) + (1|jday_f),
-		data = dat,
-		mesh = mesh,
-		spatial = "on",
-		time = "year",
-		spatiotemporal = "IID",
-		reml = TRUE
-	)
 	
 	fit6 <- sdmTMB(
 		log_wt ~ age_f + s(presurvey_btemp, by = age_f) +
