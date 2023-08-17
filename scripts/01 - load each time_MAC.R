@@ -15,6 +15,8 @@
 	library(gratia)
 	library(sf)
 	library(AICcmodavg)
+	library(sdmTMB)
+	library(future)
 	
 	# ggsave func
 	 ggsave_func <- function(x,y,w = 10,h = 10){
@@ -232,7 +234,7 @@
 	yfinsole_dat <- yfinsole_dat  %>% filter(between(age, 1, 20))
 
 
-	
+	dat_list <- list(pcod_dat, pollock_dat, yfinsole_dat)
 	
   
  	pcod_yr_sum <- pcod_dat %>%
