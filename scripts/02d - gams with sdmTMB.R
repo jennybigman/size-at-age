@@ -1,28 +1,104 @@
-# 02d - gams with sdmTMB
+# 02d -
+	# make mesh
+	pcod_mesh <- make_mesh(pcod_dat, xy_cols = c("X", "Y"), cutoff = 20)
+	pol_mesh <- make_mesh(pollock_dat, xy_cols = c("X", "Y"), cutoff = 20)
+	yfin_mesh <- make_mesh(yfinsole_dat, xy_cols = c("X", "Y"), cutoff = 20)
 
- sdmTMB_func <- function(x){
+	# presurvey bottom temp ####
+	
+	# pollock ####
+ 		presurvey_btemp_pol <- 
+			sdmTMB(	
+ 					log_wt ~ age_f + s(presurvey_btemp) + s(jday),
+					data = pollock_dat,
+					mesh = pol_mesh,
+					spatial = "on",
+					time = "year",
+					spatiotemporal = "IID",
+					anisotropy = TRUE,
+					silent = FALSE,
+					control = sdmTMBcontrol(nlminb_loops = 1, newton_loops = 1,
+																	step.min = 0.01, step.max = 1))
+ 		
+ 		presurvey_btemp_int_pol <- sdmTMB(
+			log_wt ~ age_f + s(presurvey_btemp, by = age_f) + s(jday),
+			data = pollock_dat,
+			mesh = pol_mesh,
+			spatial = "on",
+			time = "year",
+			spatiotemporal = "IID",
+			anisotropy = TRUE,
+			silent = FALSE,
+			control = sdmTMBcontrol(nlminb_loops = 3, newton_loops = 3,
+															step.min = 0.01, step.max = 1)
+		)
  	
- 	fit <- sdmTMB(	
- 		log_wt_std ~ age_f + s(presurvey_btemp_std) + s(jday_std),
-		data = dat,
-		mesh = mesh,
-		spatial = "on",
-		time = "year",
-		spatiotemporal = "IID",
-		anisotropy = TRUE
- 	)
- 	
- 	fit_int <- sdmTMB(
-		log_wt_std ~ age_f + s(presurvey_btemp_std, by = age_f) + s(jday_std),
-		data = x,
-		mesh = mesh,
-		spatial = "on",
-		time = "year",
-		spatiotemporal = "IID",
-		anisotropy = TRUE,
-		control = sdmTMBcontrol(nlminb_loops = 5, newton_loops = 5)
-	)
- 	
- }
+  saveRDS(presurvey_btemp_pol, 
+  				file = here("./output/model output/sdmTMB output/presurvey_btemp_pol.rds"))
+  
+  saveRDS(presurvey_btemp_int_pol, 
+  				file = here("./output/model output/sdmTMB output/presurvey_btemp_int_pol.rds"))
  
- mod_list <- lapply(dat_list, sdmTMB_func)
+  ## pcod ####
+ 	presurvey_btemp_pcod <- 
+		sdmTMB(	
+ 				log_wt ~ age_f + s(presurvey_btemp) + s(jday),
+				data = pcod_dat,
+				mesh = pcod_mesh,
+				spatial = "on",
+				time = "year",
+				spatiotemporal = "IID",
+				anisotropy = TRUE,
+				control = sdmTMBcontrol(nlminb_loops = 3, newton_loops = 3,
+																step.min = 0.01, step.max = 1))
+ 		
+ 		presurvey_btemp_int_pcod <- sdmTMB(
+			log_wt ~ age_f + s(presurvey_btemp, by = age_f) + s(jday),
+			data = pcod_dat,
+			mesh = pcod_mesh,
+			spatial = "on",
+			time = "year",
+			spatiotemporal = "IID",
+			anisotropy = TRUE,
+			control = sdmTMBcontrol(nlminb_loops = 4, newton_loops = 4,
+															step.min = 0.01, step.max = 1)
+		)
+ 	
+  saveRDS(presurvey_btemp_pcod, 
+  				file = here("./output/model output/sdmTMB output/presurvey_btemp_pcod.rds"))
+  
+  saveRDS(presurvey_btemp_int_pcod, 
+  				file = here("./output/model output/sdmTMB output/presurvey_btemp_int_cod.rds"))
+ 
+  ## yfin sole ###
+  
+ 	presurvey_btemp_yfin <- 
+		sdmTMB(	
+ 				log_wt ~ age_f + s(presurvey_btemp) + s(jday),
+				data = yfinsole_dat,
+				mesh = yfin_mesh,
+				spatial = "on",
+				time = "year",
+				spatiotemporal = "IID",
+				anisotropy = TRUE,
+				control = sdmTMBcontrol(nlminb_loops = 1, newton_loops = 1,
+																step.min = 0.01, step.max = 1))
+ 		
+ 		presurvey_btemp_int_yfin <- sdmTMB(
+			log_wt ~ age_f + s(presurvey_btemp, by = age_f) + s(jday),
+			data = yfinsole_dat,
+			mesh = yfin_mesh,
+			spatial = "on",
+			time = "year",
+			spatiotemporal = "IID",
+			anisotropy = TRUE,
+			control = sdmTMBcontrol(nlminb_loops = 3, newton_loops = 3,
+															step.min = 0.01, step.max = 1)
+		)
+ 	
+  saveRDS(presurvey_btemp_yfin, 
+  				file = here("./output/model output/sdmTMB output/pol_pretemp_yfin.rds"))
+  
+  saveRDS(presurvey_btemp_int_yfin, 
+  				file = here("./output/model output/sdmTMB output/presurvey_btemp_int_yfin.rds"))
+ 
