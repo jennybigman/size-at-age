@@ -72,9 +72,6 @@
 	# turn cohort and age into factors for the model and log variables
 	specimen_dat <- specimen_dat %>%
 		filter(weight > 0) %>%
-		mutate(age_f = as.factor(age),
-					 cohort_f = as.factor(cohort),
-					 log_wt = log10(weight)) %>%
 		rename(latitude = start_latitude,
 					 longitude = start_longitude)
 	
@@ -86,4 +83,7 @@
  	df_list_wrangled_names <- dplyr::bind_rows(df_list_wrangled, .id = "species")
  	
 	write.csv(df_list_wrangled_names, file = here("./data/df_list_wrangled_names.csv"))
- 
+	
+	
+	#### does pcod dat have NAs
+	
