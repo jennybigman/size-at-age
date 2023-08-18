@@ -1,16 +1,34 @@
 # use mapply for regression
 
-	wt <- rnorm(100, 5, 1)
-	temp <- rnorm(100, 10, 5)
-	oxy <- rnorm(100, 3, 2)
+	wt1 <- rnorm(100, 5, 1)
+	temp1 <- rnorm(100, 10, 5)
+	oxy1 <- rnorm(100, 3, 2)
 
-	sim_dat1 <- tibble(wt, temp, oxy) %>%
+	sim_dat1 <- tibble(wt1, temp1, oxy1) %>%
 		mutate(species = rep("cod"))
 	
-	sim_dat2 <- tibble(wt, temp, oxy) %>%
+	wt2 <- rnorm(100, 3, 1)
+	temp2 <- rnorm(100, 7, 5)
+	oxy2 <- rnorm(100, 7, 2)
+
+	sim_dat2 <- tibble(wt2, temp2, oxy2) %>%
 		mutate(species = rep("sole"))
 
+	wt1 <- rnorm(100, 5, 1)
+	temp1 <- rnorm(100, 10, 5)
+	temp2 <- rnorm(100, 3, 2)
 
+	sim_dat_temp1 <- tibble(wt1, temp1, temp2) %>%
+		mutate(species = rep("cod"))
+	
+	wt1 <- rnorm(100, 8, 1)
+	temp1 <- rnorm(100, 6, 5)
+	temp2 <- rnorm(100, 9, 2)
+
+	sim_dat_temp2 <- tibble(wt1, temp1, temp2) %>%
+		mutate(species = rep("sole"))
+
+	# apply different models to 1 df
 	lm_func <- function(var){
 	
 			mod <- lm(wt ~ var, data = sim_dat1)
@@ -21,59 +39,22 @@
 
 	mod_list <- lapply(vars, lm_func)
 	
-	# function with multiple dfs
+	# apply two models to different dfs
 	
 	lm_func2 <- function(df){
 	
-			mod <- lm(wt ~ temp, data = df)
-
+			mod_temp <- lm(wt ~ temp, data = df)
+			mod_oxy <- lm(wt ~ oxy, data = df)
+			list(mod_temp, mod_oxy)
 	}
 	
 	dfs <- list(sim_dat1, sim_dat2)
 	
 	mod_list <- lapply(dfs, lm_func2)
 	
+	
 	# mapply with multiple dfs and variables
 	
-	lm_func3 <- function(var, df){
-		lm(wt ~ var, data = df)
-	}
-	
-	dfs <- list(sim_dat1, sim_dat2)
-	vars <- c("temp", "oxy")
-	
-	test <- expand_grid(dfs, vars)
-	
-	mod_list <- mapply(lm_func3,
-										 var = test$vars,
-										 df = test$dfs,
-										 SIMPLIFY = F)
-	
-	# try again
-	
-	test <- mapply(function(df, z) mutate_(df, z=z), dfs, 3:4, SIMPLIFY=FALSE)
-
-	test <- mapply(function(var, df) lm(wt ~ var, data = df), df = test$dfs, var = test$vars, SIMPLIFY=FALSE)
-	
-	# again
-	
-	library(purrr)
-
-	map2(person_ids, time_ranges, F, dt, date_col, z)
-	
-	map2(test$vars, test$dfs, lm_func3)
-
-	# try again
-	
-		df_list_tp <- mapply(cbind, df_list, "time_period"= names(year_bins), SIMPLIFY = FALSE)
-
-		test_list <- mapply(lm_func3, df = dfs, var = vars, SIMPLIFY = FALSE)
-
-		
-		
-		
-	
-	# try something else
 	
 	 vars = c("temp", "oxy")
 
@@ -91,18 +72,22 @@
 	 summary(lm(wt ~ oxy, data = sim_dat1))
 	 
 	 # try it with multiple dfs
+
 	 vars = c("temp", "oxy")
-	 dfs <- list(sim_dat1, sim_dat2)
 
 	 lm_func <- function(preds, df){
 	 		 formulas <- paste("wt ~", preds)
 			 fit <- lm(as.formula(formulas), data = df)
 	 }
 	 
-	 test <- mapply(lm_func, preds = vars, df = dfs, SIMPLIFY = F)
-
-
-	 ### try soemthing else
+	 test <- mapply(lm_func, preds = vars, df = df_list, SIMPLIFY = F)
+	
+	 ###########
+	 
+	 
+	 
+	 
+	 ### try soemthing else -- WORKS ####
 	 PREDS = c("temp", "oxy")
 
 	 DVMOD <- function(PREDS, data){
@@ -113,10 +98,131 @@
 
 	 DVMOD("temp", sim_dat1)
 
-	 all_models <- lapply(c("age"),function(x,y){
+	 all_models <- lapply(c("temp", "oxy"),function(x,y){
      DVMOD(x,y)
-	},justices)
-#### temperature ####
+	}, sim_dat1)
+
+	 
+	###### try again
+	 
+	df_list <- list (sim_dat1, sim_dat2)
+	
+	lm_func <- function(df){
+		
+		temp_fit <- lm(wt ~ temp, data = df)
+		oxy_fit <- lm(wt ~ oxy, data = df)
+		
+	}
+	
+	dfs <- list(sim_dat1, sim_dat2)
+
+	mod_list <- lapply(df_list, lm_func)
+	
+	#### again
+	
+	models <- function(.x) {
+		
+  	temp <- lm(wt ~ temp, data = .x)
+  	oxy <- lm(wt ~ oxy, data = .x)
+
+   list(temp, oxy) |>
+      map_dfr(broom::glance, .id = "model")
+	}
+	
+	mod_list <- lapply(df_list, models)
+	
+	######### again
+	
+	foo <- function(n1, n2) {
+      as.formula(paste("class~", paste(n1, n2, sep = "+")))
+  }
+> foo(name1, name2)
+# class ~ field1 + field2
+# <environment: 0x4d0da58>
+svm(foo(name1, name2), data = df)
+	
+foo <- function(x) {
+      as.formula(paste("wt~", paste(x, sep = "+")))
+}
+
+vars <- c("temp", "oxy")
+
+formulas <- lapply(vars, foo)
+
+lm_func <- function(x){
+	fit <- lm(x, data = sim_dat1)
+	fit_tidy <- broom::glance(fit)
+}
+
+mod_lists <- lapply(formulas, lm_func)
+
+# try again
+
+ model_func <- function(x)
+ 	lm(paste0(wt, "~", x), data = sim_dat1)
+ 
+ map(model_func, vars)
+
+	 
+	reg <- function(y,x) {
+   lm(paste0(y,"~",x),data=sim_dat1)
+}
+	mapply(reg, y = "wt", x = vars, SIMPLIFY = F)
+	# above works
+	
+	# try with dfs
+	reg <- function(x, df) {
+   lm(paste0("wt ~",x),data=df)
+}
+	
+	output <- mapply(reg, x = vars, df = df_list, SIMPLIFY = F)
+
+	
+	## try again
+	
+	lm_func <- function(x){
+		paste0("wt ~ ", x)
+	}
+	
+	forms <- sapply(vars, lm_func)
+		
+	run_lm_func <- function(df){
+		lm(as.formula(forms), data = df)
+	}	
+		
+	mod_list <- lapply(df_list, run_lm_func)
+
+	#### try again
+	
+	results = map_df(1:length(df_list), function(i){
+  
+  rf_model <- randomForest::randomForest(Species ~., data = df_list[[i]])
+  rf_model_roc <- roc(iris$Species,rf_model$votes[,2])
+  df_auc <- auc(rf_model_roc)
+  
+  data.frame(
+    dataset = paste0("dataset", i),
+    auc = as.numeric(df_auc)
+  )
+  
+})
+
+results
+
+
+	
+	results = purrr::map_df(1:length(df_list), function(i){
+  
+  temp_model <- lm(wt ~ temp, data = df_list[[i]])
+  oxy_model <- lm(wt ~ oxy, data = df_list[[i]])
+  
+})
+
+results
+
+
+
+	 #### temperature ####
 	
 	## presurvey temp ####
 	
