@@ -1,6 +1,6 @@
 	
 	
-	dat <- pollock_dat %>% select(-X)
+	dat <- pollock_dat 
 	
 	dat$cohort_f <- droplevels(dat$cohort_f)
 	dat$ID_f <- droplevels(dat$ID_f)
