@@ -1,44 +1,36 @@
 	
 	
-	dat <- pollock_dat 
-	
-	dat$cohort_f <- droplevels(dat$cohort_f)
-	dat$ID_f <- droplevels(dat$ID_f)
-	dat$haul_id_f <- droplevels(dat$haul_id_f)
-
-	dat <- dat %>% 
-		mutate(year_f = as.factor(year),
-					 haul_f = as.factor(haul),
-					 jday_f = as.factor(jday))
-
-	dat <- add_utm_columns(
-		dat, c("longitude", "latitude"))
+	dat <- pollock_dat %>% droplevels()
 	
 	mesh <- make_mesh(dat, xy_cols = c("X", "Y"), cutoff = 20)
 	#mesh2 <- make_mesh(dat, c("X", "Y"), n_knots = 800, type = "kmeans")
 	#mesh$mesh$n
 	#plot(mesh)
 	
-	dat$presurvey_btemp_std <- (dat$presurvey_btemp - mean(dat$presurvey_btemp)/sd(dat$presurvey_btemp))
-	dat$jday_std <- (dat$jday - mean(dat$jday)/sd(dat$jday))
-
-		# playing with parameterizations
+	# playing with parameterizations
 
 	#plan(multisession)
 	
 	fit1 <- sdmTMB(
-		log_wt_std ~ age_f + s(presurvey_btemp_std),
-		data = dat,
-		mesh = mesh,
-		spatial = "off",
-		spatiotemporal = "off",
-		)
-	
-	# no error
-	
+  	data = dat,
+  	formula = log_wt ~ age_f,
+  	mesh = mesh, 
+  	family = gaussian(),
+  	spatial = "off",	
+  	spatiotemporal = "off")
+
 	fit2 <- sdmTMB(
-		log_wt_std ~ age_f + s(presurvey_btemp_std),
+  	data = dat,
+  	formula = log_wt ~ s(presurvey_btemp),
+  	mesh = mesh, 
+  	family = gaussian(),
+  	spatial = "off",
+  	spatiotemporal = "off")	
+	
+
+	fit2 <- sdmTMB(
 		data = dat,
+		forumla = log_wt_std ~ age_f + s(presurvey_btemp),
 		mesh = mesh,
 		spatial = "on",
 		spatiotemporal = "off")
@@ -53,9 +45,9 @@
 	# no error, mesh 2 better fit
 		
 	fit3 <- sdmTMB(
-		log_wt_std ~ age_f + s(presurvey_btemp_std, by = age_f),
+		log_wt ~ age_f + s(presurvey_btemp, by = age_f),
 		data = dat,
-		mesh = mesh2,
+		mesh = mesh,
 		spatial = "on",
 		spatiotemporal = "off")
 	# no error

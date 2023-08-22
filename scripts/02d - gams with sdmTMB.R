@@ -4,8 +4,13 @@
 	pol_mesh <- make_mesh(pollock_dat, xy_cols = c("X", "Y"), cutoff = 20)
 	yfin_mesh <- make_mesh(yfinsole_dat, xy_cols = c("X", "Y"), cutoff = 20)
 
+	pcod_dat <- droplevels(pcod_dat)
+	
 	# presurvey bottom temp ####
 	
+	pollock_dat_NA <- na.omit(pollock_dat)
+	pol_mesh <- make_mesh(pollock_dat_NA, xy_cols = c("X", "Y"), cutoff = 20)
+
 	# pollock ####
  		presurvey_btemp_pol <- 
 			sdmTMB(	
@@ -16,7 +21,6 @@
 					time = "year",
 					spatiotemporal = "IID",
 					anisotropy = TRUE,
-					silent = FALSE,
 					control = sdmTMBcontrol(nlminb_loops = 1, newton_loops = 1,
 																	step.min = 0.01, step.max = 1))
  		
