@@ -10,31 +10,62 @@
 	# playing with parameterizations
 
 	#plan(multisession)
-	
-	fit1 <- sdmTMB(
-  	data = dat,
-  	formula = log_wt ~ age_f,
-  	mesh = mesh, 
-  	family = gaussian(),
-  	spatial = "off",	
-  	spatiotemporal = "off")
 
-	fit2 <- sdmTMB(
+	fit1 <- sdmTMB(
 		data = dat,
 		formula = log_wt ~ age_f + s(presurvey_btemp),
 		mesh = mesh, 
 		family = gaussian(),
 		spatial = "off",	
-		spatiotemporal = "off")
-		
-	fit3 <- sdmTMB(
+		spatiotemporal = "off",
+		control = sdmTMBcontrol(newton_loops = 1))
+	# no error, sanity() perfect
+	
+	
+	fit2 <- sdmTMB(
 		log_wt ~ age_f + s(presurvey_btemp, by = age_f),
 		data = dat,
 		mesh = mesh,
 		spatial = "off",
-		spatiotemporal = "off")
-
-	fit4 <- sdmTMB(
+		spatiotemporal = "off",
+		control = sdmTMBcontrol(newton_loops = 1))
+	# no error, sanity() says ln_smooth_sigma SE may be too large
+	
+	fit2b <- sdmTMB(
+		log_wt ~ age_f + s(presurvey_btemp, by = age_f),
+		data = dat,
+		mesh = mesh2,
+		spatial = "off",
+		spatiotemporal = "off",
+		control = sdmTMBcontrol(newton_loops = 1))
+	# no error, sanity() says ln_smooth_sigma SE may be too large
+	
+	fit2c <- sdmTMB(
+		log_wt ~ age_f + s(presurvey_btemp, by = age_f),
+		data = dat,
+		priors = sdmTMBpriors(
+			b = normal(location = 0, scale = 5)
+		),
+		mesh = mesh2,
+		spatial = "off",
+		spatiotemporal = "off",
+		control = sdmTMBcontrol(newton_loops = 1))
+	# no error, sanity() says ln_smooth_sigma SE may be too large
+	
+	fit2d <- sdmTMB(
+		log_wt ~ age_f + s(presurvey_btemp, by = age_f, k = 4),
+		data = dat,
+		priors = sdmTMBpriors(
+			b = normal(location = 0, scale = 5),
+			phi = normal(location = 0, scale = 5)
+		),
+		family = student(),
+		mesh = mesh2,
+		spatial = "off",
+		spatiotemporal = "off",
+		control = sdmTMBcontrol(newton_loops = 1))
+	
+	fit3 <- sdmTMB(
 		log_wt ~ age_f + s(presurvey_btemp, by = age_f) +
 			s(jday),
 		data = dat,
@@ -45,7 +76,7 @@
 		)
 
 
-	fit5 <- sdmTMB(
+	fit4 <- sdmTMB(
 		log_wt ~ age_f + s(presurvey_btemp, by = age_f) +
 			s(jday),
 		data = dat,
@@ -92,9 +123,11 @@
 		spatiotemporal = "IID",
 		anisotropy = TRUE,
 		priors = sdmTMBpriors(
-			b = normal(location = 0, scale = 5)),
+			b = normal(location = c(0,0) scale = c(20)),
 		control = sdmTMBcontrol(nlminb_loops = 2)
 	)
+	
+	head(fit7_p$tmb_data$X_ij[[1]])
 	#### sanity checks ####
 	
 	sanity(fit7)
