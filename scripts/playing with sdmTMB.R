@@ -79,6 +79,20 @@
 
 	saveRDS(fit7, file = here("output/model output PC/fit7.rds"))
 	
+	fit7 <- readRDS(file = here("output/model output/sdmTMB output/fit7.rds"))
+	
+	#### sanity checks ####
+	
+	sanity(fit7)
+	
+	#### plotting ####
+	
+	
+	
+	
+	
+	
+	
 	visreg::visreg(fit4, xvar = "presurvey_btemp", by = "age_f")
 	
 	visreg::visreg(fit4, xvar = "presurvey_btemp", by = "age_f", scale = "response",
