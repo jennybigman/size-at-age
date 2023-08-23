@@ -5,11 +5,11 @@
 	yfin_mesh <- make_mesh(yfinsole_dat, xy_cols = c("X", "Y"), cutoff = 20)
 
 	pcod_dat <- droplevels(pcod_dat)
-	pollock_dat <- droplevels(pollock_dat)
-	yfinsole_dat <- droplevels(yfinsole_dat)
 	
 	# presurvey bottom temp ####
 	
+	pollock_dat_NA <- na.omit(pollock_dat)
+	pol_mesh <- make_mesh(pollock_dat_NA, xy_cols = c("X", "Y"), cutoff = 20)
 
 	# pollock ####
  		presurvey_btemp_pol <- 
@@ -21,24 +21,27 @@
 					time = "year",
 					spatiotemporal = "IID",
 					anisotropy = TRUE,
-					control = sdmTMBcontrol(nlminb_loops = 2))
+					control = sdmTMBcontrol(nlminb_loops = 1, newton_loops = 1,
+																	step.min = 0.01, step.max = 1))
  		
- 		presurvey_btemp_int_pol <- 
- 			sdmTMB(	
- 				log_wt ~ age_f + s(presurvey_btemp, by = age_f) + s(jday),
- 				data = pollock_dat,
- 				mesh = pol_mesh,
- 				spatial = "on",
- 				time = "year",
- 				spatiotemporal = "IID",
- 				anisotropy = TRUE,
- 				control = sdmTMBcontrol(nlminb_loops = 2))
+ 		presurvey_btemp_int_pol <- sdmTMB(
+			log_wt ~ age_f + s(presurvey_btemp, by = age_f) + s(jday),
+			data = pollock_dat,
+			mesh = pol_mesh,
+			spatial = "on",
+			time = "year",
+			spatiotemporal = "IID",
+			anisotropy = TRUE,
+			silent = FALSE,
+			control = sdmTMBcontrol(nlminb_loops = 3, newton_loops = 3,
+															step.min = 0.01, step.max = 1)
+		)
  	
   saveRDS(presurvey_btemp_pol, 
-  				file = here("./output/model output PC/presurvey_btemp_pol.rds"))
+  				file = here("./output/model output/sdmTMB output/presurvey_btemp_pol.rds"))
   
   saveRDS(presurvey_btemp_int_pol, 
-  				file = here("./output/model output PC/presurvey_btemp_int_pol.rds"))
+  				file = here("./output/model output/sdmTMB output/presurvey_btemp_int_pol.rds"))
  
   ## pcod ####
  	presurvey_btemp_pcod <- 
