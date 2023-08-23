@@ -231,22 +231,22 @@
 	specimen_dat <- lapply(specimen_dat, xy_func)
 		
 	## scale cols
-	#
-	#std_func <- function(df){
-	#	
-	#	  
-  # df %>% 
- 	#	mutate_at(vars(contains(c("btemp", "boxy", "jday"))), ~ scale(.) %>% as.vector)
-#
-	#}
-#
-	#specimen_dat_std <- lapply(specimen_dat, std_func)
+	
+	std_func <- function(df){
+		
+		  
+   df %>% 
+ 		mutate_at(vars(contains(c("btemp", "boxy", "jday"))), ~ scale(.) %>% as.vector)
+
+	}
+
+	specimen_dat_std <- lapply(specimen_dat, std_func)
 	
 	
 	# separate for species-specific wrangling tasks
-	pcod_dat <- specimen_dat[[1]]
-	pollock_dat <- specimen_dat[[2]]
-	yfinsole_dat <- specimen_dat[[3]]
+	pcod_dat <- specimen_dat_std[[1]]
+	pollock_dat <- specimen_dat_std[[2]]
+	yfinsole_dat <- specimen_dat_std[[3]]
 
 	# trim data set by largest age with >= 100 samples
 	pcod_dat <- pcod_dat  %>% filter(between(age, 1, 28))

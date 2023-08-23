@@ -85,6 +85,9 @@
 	
 	sanity(fit7)
 	
+	# need to try adding priors
+	
+	
 	#### plotting ####
 	
 	
