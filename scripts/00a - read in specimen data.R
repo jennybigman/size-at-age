@@ -42,7 +42,7 @@
  # wrangle
  wrangling_func <- function(x){
 		
- 		#pull out relevant dfs from list a d join
+ 		#pull out relevant dfs from list and join
 		spec_dat <- x$specimen
   	haul_dat <- x$haul
   
@@ -86,4 +86,9 @@
 	
 	
 	#### does pcod dat have NAs
+	pcod_dat_test <- df_list_wrangled_names %>% filter(species == "df_pcod")
 	
+	pcod_dat_test_sum <- pcod_dat_test %>%
+		mutate(fage = as.factor(age)) %>%
+		group_by(fage) %>%
+		summarise(count = n())
