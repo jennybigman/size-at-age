@@ -25,8 +25,8 @@
   				file = here("./output/model output PC/pol_pretemp_age_bam_ML.rds"))
  
   # 2. weight ~ age * temp
-	pol_pretemp_int_age_bam_ML <- bam(log_wt ~ age_f + s(presurvey_mean_temp, by = age_f) + 
-																 	s(julian_day) + te(latitude, longitude) + 
+	pol_pretemp_int_age_bam_ML <- bam(log_wt_std ~ age_f + s(presurvey_btemp, by = age_f) + 
+																 	s(jday) + te(latitude, longitude) + 
 																	s(ID_f, bs = "re") + # haul in year random effect
 								 									s(haul_id_f, bs = "re") + # haul in year random effect
 								 									s(cohort_f, bs = "re"),
@@ -38,7 +38,7 @@
   #				file = here("./output/model output/ACLIM temps/pol_pretemp_int_age_bam.rds"))
   
 	saveRDS(pol_pretemp_int_age_bam_ML, 
-	 				file = here("./output/model output PC/pol_pretemp_int_age_bam_ML.rds"))
+	 				file = here("./output/model output/output Feb 2023/pol_pretemp_int_age_bam_ML.rds"))
  
 	# pcod #
 	
@@ -55,16 +55,15 @@
 	#saveRDS(pcod_pretemp_age_bam, 
   #				file = here("./output/model output/ACLIM temps/pcod_pretemp_age_bam.rds"))
  
-	saveRDS(pcod_pretemp_age_bam_ML, 
-	 				file = here("./output/model output PC/pcod_pretemp_age_bam_ML.rds"))
+	pcod_pretemp_age_bam_ML <- readRDS(file = here("./output/model output/output Feb 2023/pcod_pretemp_age_bam_ML.rds"))
  
   # 2. weight ~ age * temp
-	pcod_pretemp_int_age_bam_ML <- bam(log_wt ~ age_f + s(presurvey_mean_temp, by = age_f) + 
-															 	   s(julian_day) + te(latitude, longitude) + 
+	pcod_pretemp_int_age_bam_ML <- bam(log_wt_std ~ age_f + s(presurvey_btemp, by = age_f) + 
+															 	   s(jday) + te(latitude, longitude) + 
 																   s(ID_f, bs = "re") + # haul in year random effect
 								 								   s(haul_id_f, bs = "re") + # haul in year random effect
 								 								   s(cohort_f, bs = "re"),
-																   data = pcod_dat, 
+																   data = pcod_dat_trim, 
 																	 nthreads = 8,
 																	 method = "ML")
 														
@@ -73,6 +72,8 @@
   
   saveRDS(pcod_pretemp_int_age_bam_ML, 
   				file = here("./output/model output PC/pcod_pretemp_int_age_bam_ML.rds"))
+
+  pcod_pretemp_int_age_bam_ML <- readRDS(file = here("./output/model output/output Feb 2023/pcod_pretemp_int_age_bam_ML.rds"))
 
  	# yfin sole #
 	
