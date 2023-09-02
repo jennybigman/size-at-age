@@ -1,4 +1,9 @@
 	# libraries
+
+	# install sdmTMB version with dispersion formula
+	devtools::install_github("https://github.com/pbs-assess/sdmTMB",
+                         ref = "dispformula2")
+
 	library(here)
 	library(tidyverse)
 	library(lubridate)
@@ -7,7 +12,6 @@
 	library(visreg)
 	library(data.table)
 	library(gamm4)
-	library(tidymv)
 	library(brms)
 	library(mgcViz)
 	library(patchwork)
@@ -18,9 +22,8 @@
 	library(sdmTMB)
 	library(sdmTMBextra)
 	library(future)
-	library(visreg)
-	library(ggplot2)
-	
+	library(DHARMa)
+
 	# ggsave func
 	 ggsave_func <- function(x,y,w = 10,h = 10){
   	ggsave(plot = x,
@@ -235,8 +238,29 @@
 	std_func <- function(df){
 		
 		  
-   df %>% 
- 		mutate_at(vars(contains(c("btemp", "boxy", "jday"))), ~ scale(.) %>% as.vector)
+  # df <- df %>% 
+	#		mutate(presurvey_boxy_std = scale(presurvey_boxy),
+	#					 presurvey_btemp_std = scale(presurvey_btemp),
+	#					 yrprior_boxy_std = scale(yrprior_boxy),
+	#					 yrprior_btemp_std = scale(yrprior_btemp),
+	#				   age0_btemp_std = scale(age0_btemp),
+	#					 age0_boxy_std = scale(age0_boxy),
+	#					 jday_std = scale(jday)) 
+	#	
+	#	df$presurvey_boxy_std <- as.vector(df$presurvey_boxy_std)
+	#	df$presurvey_btemp_std <- as.vector(df$presurvey_btemp_std)
+	#	df$yrprior_boxy_std <- as.vector(df$yrprior_boxy_std)
+	#	df$yrprior_btemp_std <- as.vector(df$yrprior_btemp_std)
+	#	df$age0_btemp_std <- as.vector(df$age0_btemp_std)
+	#	df$age0_boxy_std <- as.vector(df$age0_boxy_std)
+	#	df$jday_std <- as.vector(df$presurvey_boxy_std)
+		
+		
+ 		df <- df %>%
+			mutate_at(vars(contains(c("btemp", "boxy"))), ~ scale(.) %>% as.vector)
+		
+		df <- df %>% 
+			mutate(jday_std = (jday - (mean(jday)))/sd(jday))
 
 	}
 
@@ -255,10 +279,22 @@
 
 	yfinsole_dat <- yfinsole_dat  %>% filter(between(age, 1, 20))
 
+	# pcod and yellowfin sole dat with only 10 age classes
+	#pcod_dat_trim <- pcod_dat  %>% filter(between(age, 1, 10))
+
+#	yfinsole_dat_trim <- yfinsole_dat  %>% filter(between(age, 1, 10))
+
+	# drop levels
+	pcod_dat$age_f <- droplevels(pcod_dat$age_f)
+	pollock_dat$age_f <- droplevels(pollock_dat$age_f)
+	yfinsole_dat$age_f <- droplevels(yfinsole_dat$age_f)
+	
 	## into list
 	#dat_list <- list(pcod_dat, pollock_dat, yfinsole_dat)
 	#
   #
- 	#pcod_yr_sum <- pcod_dat %>%
-	#	group_by(year) %>%
-	#	summarize(n())
+ 	pcod_yr_sum <- pcod_dat %>%
+		group_by(age) %>%
+		summarize(n())
+
+	
