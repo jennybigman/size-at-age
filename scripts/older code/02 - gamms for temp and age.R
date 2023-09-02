@@ -48,8 +48,9 @@
 	
 
   # 3. log, scaled weight at age ~  + age*temp + julian day + random effects of cohort +  haul nested within year
-	temp_age_int_mod_pcod <- gamm4(log_wt_scaled ~  s(mean_sum_temp, by = age) + t2(latitude, longitude) +
-														s(julian_day),
+	temp_age_int_mod_pcod <- gamm4(log_wt_std ~  s(presurvey_btemp, by = age_f) + 
+																 	t2(latitude, longitude) +
+														s(jday),
 													  random = ~ (1|cohort) + (1|year/haul),
 														data = pcod_dat)
 

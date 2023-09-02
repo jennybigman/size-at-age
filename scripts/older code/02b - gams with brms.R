@@ -31,7 +31,7 @@
 	#	filter(year %in% yrs_keep) 
 
 	# 1. weight ~ age + temp
-	poll_temp_age_gam <- brm(log_wt ~ age_f + s(mean_sum_temp) + t2(latitude, longitude) + s(julian_day) +
+	poll_temp_age_gam <- brm(log_wt ~ age_f + s(presurvey_btemp) + t2(latitude, longitude) + s(jday) +
 													(1|year/haul) + (1|cohort),
 													data = pollock_dat,
 													family = gaussian(),
@@ -40,8 +40,8 @@
 														
 
   # 2. weight ~ age * temp
-	poll_temp_int_age_gam <- brm(log_wt ~ age_f + s(mean_sum_temp, by = age_f) + t2(latitude, longitude) +
-															s(julian_day) + (1|year/haul) + (1|cohort),
+	poll_temp_int_age_gam <- brm(log_wt ~ age_f + s(presurvey_btemp, by = age_f) + t2(latitude, longitude) +
+															s(jday) + (1|year/haul) + (1|cohort),
 															data = pollock_dat,
 															family = gaussian(),
 															save_all_pars = TRUE,
@@ -53,7 +53,7 @@
 	saveRDS(poll_temp_int_age_gam, file = here("./output/model output/poll_temp_int_age_gam.rds"))
 
 	# load models 
-	poll_temp_age_gam_brms <- readRDS(file = "./output/model output/poll_temp_age_gam.rds")
+	poll_temp_age_gam_brms <- readRDS(file = "./output/model output/older model output/poll_temp_age_gam.rds")
 	poll_temp_int_age_gam_brms <- readRDS(file = "./output/model output/older model output/poll_temp_int_age_gam.rds")
 	
 	# compare models
@@ -104,6 +104,44 @@
 
 	ggplot_build(poll_temp_age_int_brms_plot)$layout$panel_scales_y[[1]]$range$range
 	
+	### all on one plot
+	
+	crp <- colorRampPalette(c('dodgerblue', '#E7E8EC'))
+	
+	colors <- crp(10)
+												
+												
+	pol_plot <- 
+		ggplot(poll_temp_age_int_df) +
+		geom_line(aes(mean_sum_temp, estimate, group = age_f, color = age_f)) +
+		scale_color_manual(values = colors, name = "age class") +
+		scale_x_continuous(
+			name = "mean summer temperature (April - June) (˚C)",
+			breaks = c(0, 1, 2),
+			labels = c(0, 1, 2)
+		) +
+		scale_y_continuous(
+			name = "partial effect on weight-at-age",
+			breaks = c(-0.2, 0, 0.2),
+			labels = c(-0.2, 0, 0.2)
+		) +
+		annotate("text", x = -0.2, y = 0.5, label = "Walleye pollock") +
+		theme(
+			strip.text = element_text(color = "black"),
+			strip.background = element_blank(),
+			panel.border = element_rect(color = "black", fill = NA),
+			axis.text=element_text(colour = "black"),
+  		axis.title= element_text(color = "black"),
+  		axis.line = element_line(color = "black"),
+  		axis.ticks = element_line(colour = "black"),
+  		panel.background = element_rect(fill = "white"),
+			panel.grid = element_blank(),
+  		plot.background = element_rect(fill = "white", color = "white")) 
+	
+	ggsave(file = here("./output/plots/pol_plot.png"),
+				 pol_plot,
+				 width = 10, height = 5, units = "in")
+
 	#### PCOD ####
 	
 	# data wrangling
@@ -161,11 +199,11 @@
 														
 
   # 2. weight ~ age * temp
-	pcod_temp_int_age_gam <- brm(log_wt ~ age_f + s(mean_sum_temp, by = age_f) + t2(latitude, longitude) +
-															s(julian_day) + (1|year/haul) + (1|cohort),
-															data = pcod_dat,
-															family = gaussian(),
-															save_all_pars = TRUE,
+	pcod_dat_trim <- na.omit(pcod_dat_trim)
+	
+	pcod_temp_int_age_gam <- brm(log_wt_std ~ age_f + s(presurvey_btemp, by = age_f) + t2(latitude, longitude) +
+															s(jday) + (1|year/haul) + (1|cohort),
+															data = pcod_dat_trim,
                   						warmup = 1000, iter = 5000, cores = 4, chains = 4)
 
   # save models
@@ -173,7 +211,7 @@
 	saveRDS(pcod_temp_int_age_gam, file = here("./output/model output/pcod_temp_int_age_gam.rds"))
 
 	# load models 
-	pcod_temp_age_gam <- readRDS(file = "./output/model output/pcod_temp_age_gam.rds")
+	pcod_temp_age_gam <- readRDS(file = "./output/model output/older model output/pcod_temp_age_gam.rds")
 	pcod_temp_int_age_gam <- readRDS(file = "./output/model output/older model output/pcod_temp_int_age_gam.rds")
 	
 	# compare models
@@ -182,7 +220,7 @@
 	
 	### plots ###
 	
-	pcod_temp_mod_ms <- conditional_smooths(pcod_temp_age_gam)
+	pcod_temp_mod_ms <- conditional_smooths(pcod_temp_int_age_gam)
 	pcod_temp_mod_brms_plot <- plot(pcod_temp_mod_ms)
 
 	pcod_temp_age_mod_ms <- conditional_smooths(pcod_temp_int_age_gam)
@@ -194,7 +232,7 @@
 		ggtitle("brms")
 	
 	# can also do 
-	pcod_temp_age_int_df <- pcod_temp_age_mod_ms[[1]] %>%
+	pcod_temp_age_int_df <- pcod_temp_mod_ms[[1]] %>%
 		mutate(age = as.numeric(age_f),
 					 age_f = fct_reorder(age_f, age)) %>%
 		rename(estimate = estimate__,
@@ -202,11 +240,21 @@
 					 upr = upper__) %>%
 		filter(age_f == 1:10)
 	
-	pcod_temp_age_int_brms_plot <- 
+	pcod_plot <- 
 		ggplot(pcod_temp_age_int_df) +
-		geom_ribbon(aes(ymin = lwr, ymax = upr, x = mean_sum_temp), fill = "lightgrey") +
-		geom_line(aes(mean_sum_temp, estimate), color = "black") +
-		facet_wrap(~age_f, ncol = 5) +
+		geom_line(aes(mean_sum_temp, estimate, group = age_f, color = age_f)) +
+		scale_color_manual(values = colors, name = "age class") +
+		scale_x_continuous(
+			name = "mean summer temperature (April - June) (˚C)",
+			breaks = c(0, 1, 2),
+			labels = c(0, 1, 2)
+		) +
+		scale_y_continuous(
+			name = "partial effect on weight-at-age",
+			breaks = c(-0.2, 0, 0.2),
+			labels = c(-0.2, 0, 0.2)
+		) +
+		annotate("text", x = -0.2, y = 0.5, label = "Pacific cod") +
 		theme(
 			strip.text = element_text(color = "black"),
 			strip.background = element_blank(),
@@ -217,7 +265,39 @@
   		axis.ticks = element_line(colour = "black"),
   		panel.background = element_rect(fill = "white"),
 			panel.grid = element_blank(),
-  		plot.background = element_rect(fill = "white", color = "white"))
+  		plot.background = element_rect(fill = "white", color = "white")) 
+	
+	ggsave(file = here("./output/plots/pol_plot.png"),
+				 pol_plot,
+				 width = 10, height = 5, units = "in")
+
+	#### faceted ####
+	
+		ggplot(pcod_temp_age_int_df) +
+		geom_line(aes(mean_sum_temp, estimate)) +
+		facet_wrap(~ age_f) +
+		scale_x_continuous(
+			name = "mean summer temperature (April - June) (˚C)",
+			breaks = c(0, 1, 2),
+			labels = c(0, 1, 2)
+		) +
+		scale_y_continuous(
+			name = "partial effect on weight-at-age",
+			breaks = c(-0.2, 0, 0.2),
+			labels = c(-0.2, 0, 0.2)
+		) +
+		annotate("text", x = -0.2, y = 0.5, label = "Walleye pollock") +
+		theme(
+			strip.text = element_text(color = "black"),
+			strip.background = element_blank(),
+			panel.border = element_rect(color = "black", fill = NA),
+			axis.text=element_text(colour = "black"),
+  		axis.title= element_text(color = "black"),
+  		axis.line = element_line(color = "black"),
+  		axis.ticks = element_line(colour = "black"),
+  		panel.background = element_rect(fill = "white"),
+			panel.grid = element_blank(),
+  		plot.background = element_rect(fill = "white", color = "white")) 
 	
 	
 	
