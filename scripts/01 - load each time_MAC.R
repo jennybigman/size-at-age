@@ -23,6 +23,9 @@
 	library(sdmTMBextra)
 	library(future)
 	library(DHARMa)
+	library(tidymv)
+	library(ggsidekick)
+	library(see)
 
 	# ggsave func
 	 ggsave_func <- function(x,y,w = 10,h = 10){
