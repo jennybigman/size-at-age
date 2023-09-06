@@ -66,7 +66,7 @@
 		plot(facet = TRUE) + see::scale_color_flat()
 	#same as above
 	
-	# predict from scratch
+	# predict from scratch ######### WORK IN PROGRESS #######
 	
 	new_dat <- data.frame(
 		age_f = pollock_dat[, 'age_f', drop = FALSE], # way to keep all values not just unique levels
@@ -80,4 +80,32 @@
 		geom_line(aes(x = presurvey_btemp, y = est)) +
 		facet_wrap(age_f)
 
-		
+	##########
+	
+	new_dat <- expand_grid(
+		age_f = unique(pollock_dat$age_f),
+		presurvey_btemp = pollock_dat$presurvey_btemp,
+		jday_std = min(pollock_dat$jday_std)
+	) %>% distinct_all()
+	
+	fits <- predict(presurvey_btemp_int_pol,
+									newdata = new_dat,
+									re_form = NA,
+									se_fit = TRUE)
+	
+	fits$low <- fits$est + (qnorm(0.025) * fits$est_se)
+	fits$high <- fits$est + (qnorm(0.975) * fits$est_se)
+
+	
+	p6 <- ggplot(fits, aes(x = presurvey_btemp, y = est)) +
+		geom_line() +
+		geom_ribbon(aes(ymin = low, ymax = high), 
+										fill = "lightgrey", alpha = 0.4) +
+		facet_wrap( ~ age_f) +
+		ylab("log scaled weight-at-age") +
+		xlab("Bottom temperature averaged April - June") +
+		theme_sleek()
+	
+	ggsave(p6, file = here("./output/plots/sdmTMB_scratch.png"))
+
+	
