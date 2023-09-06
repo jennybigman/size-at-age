@@ -300,4 +300,12 @@
 		group_by(age) %>%
 		summarize(n())
 
+ 	pol_test_df <- specimen_dat_std[[2]]
 	
+ 	pollock_age_sum <- pol_test_df %>%
+		group_by(age) %>%
+		summarize(n())
+
+ 	pollock_yr_sum <- pol_test_df %>%
+		group_by(year) %>%
+		summarize(n())
