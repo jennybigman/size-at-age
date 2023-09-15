@@ -296,9 +296,23 @@
 	#dat_list <- list(pcod_dat, pollock_dat, yfinsole_dat)
 	#
   #
- 	pcod_yr_sum <- pcod_dat %>%
+ 	pcod_age_sum <- pcod_dat %>%
 		group_by(age) %>%
 		summarize(n())
+
+ 	yfin_age_sum <- yfinsole_dat %>%
+		group_by(age) %>%
+		summarize(n())
+ 	
+ 	yfin_age_sum <- yfinsole_dat %>%
+		group_by(age) %>%
+		summarize(n())
+ 	
+ 	pol_age_sum <- pollock_dat %>%
+		group_by(age) %>%
+		summarize(n())
+
+
 
  	pol_test_df <- specimen_dat_std[[2]]
 	
