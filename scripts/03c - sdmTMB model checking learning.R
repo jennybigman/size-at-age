@@ -23,7 +23,7 @@
  # MCMC-based residuals
 	set.seed(123)
 	samps <- sdmTMBextra::predict_mle_mcmc(presurvey_btemp_int_pol, 
-																				 mcmc_warmup = 250, mcmc_iter = 500)
+																				 mcmc_warmup = 100, mcmc_iter = 101)
 	
 	r <- residuals(presurvey_btemp_int_pol, mcmc_samples = samps)
 	qqnorm(r)
@@ -35,8 +35,11 @@
 	
 	# simulation based residuals with the sdmTMB extra pkg
 	simulate(presurvey_btemp_int_pol, nsim = 500) %>%
-  sdmTMBextra::dharma_residuals(presurvey_btemp_int_pol)	
+  	sdmTMBextra::dharma_residuals(presurvey_btemp_int_pol)	
 	
+	sims <- simulate(presurvey_btemp_int_pol, nsim = 500)
+	dharma_sims <- sims %>% dharma_residuals(presurvey_btemp_int_pol)
+
 	## using DHARMa tools
 	
 	# simulations from the fitted model to use with simulation-based residuals
@@ -88,3 +91,11 @@
 												ymin = low_resid, ymax = high_resid)) +
 		geom_hline(yintercept = 0) +
 		theme_sleek()
+	
+	# using DHARMa pkg
+	
+	sims <- simulateResiduals(presurvey_btemp_int_pol, plot = FALSE)
+	resids <- residuals(sims)
+
+	pol_resids <- bind_cols(pollock_dat, resids) %>% rename(resids = "...40")
+	
