@@ -65,11 +65,11 @@
  	
  	## summarize
 
-	pol_age_sum <- list(pollock_age_sum_match, KO_age_sum, ML_dat_trim_age_sum) %>%
+	pol_age_sum_comp <- list(pollock_age_sum_match, KO_age_sum, ML_dat_trim_age_sum) %>%
   	reduce(full_join, by = "age_f") %>%
 		setNames(c("age", "JSB", "KO", "ML"))
 	
-	pol_yr_sum <- list(pollock_yr_sum_match, KO_yr_sum, ML_dat_trim_year_sum) %>%
+	pol_yr_sum_comp <- list(pollock_yr_sum_match, KO_yr_sum, ML_dat_trim_year_sum) %>%
   	reduce(full_join, by = "year") %>%
 		setNames(c("year", "JSB", "KO", "ML"))
 		
