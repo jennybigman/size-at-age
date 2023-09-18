@@ -276,7 +276,7 @@
 	yfinsole_dat <- specimen_dat_std[[3]]
 
 	# trim data set by largest age with >= 100 samples
-	pcod_dat <- pcod_dat  %>% filter(between(age, 1, 28))
+	pcod_dat <- pcod_dat  %>% filter(between(age, 1, 20))
 
 	pollock_dat <- pollock_dat  %>% filter(between(age, 1, 10))
 
