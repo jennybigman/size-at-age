@@ -53,7 +53,6 @@
 			control = sdmTMBcontrol(nlminb_loops = 2, newton_loops = 1))
 
  	sanity(presurvey_btemp_int_pol_nj)
- 	
  		
 	saveRDS(presurvey_btemp_int_pol_nj, 
   				file = here("./output/model output/sdmTMB output/presurvey_btemp_int_pol_nj.rds"))
@@ -87,11 +86,13 @@
 	
 	# set up priors
 	pc <- pc_matern(range_gt = 235, sigma_lt = 0.4) # set up prior
+	
+	pcod_mesh_trim2 <- make_mesh(pcod_dat_trim, c("X", "Y"), n_knots = 800, type = "kmeans")
 
  	presurvey_btemp_int_pcod_nj <- sdmTMB(
 			log_wt_std ~ age_f + s(presurvey_btemp, by = age_f),
 			data = pcod_dat_trim,
-			mesh = pcod_mesh_trim,
+			mesh = pcod_mesh_trim2,
 			priors = sdmTMBpriors(matern_s = pc),
 			spatial = "on",
 			time = "year",
@@ -101,10 +102,13 @@
  	sanity(presurvey_btemp_int_pcod_nj)
  	
  	# check residuals - simulation-based residuals
-	sims <- simulate(presurvey_btemp_pcod_nj, nsim = 250)
-	dharma_sims <- sims %>% dharma_residuals(presurvey_btemp_pcod_nj)
+	sims <- simulate(presurvey_btemp_int_pcod_nj, nsim = 250)
+	dharma_sims <- sims %>% dharma_residuals(presurvey_btemp_int_pcod_nj)
 	
-	saveRDS(presurvey_btemp_pcod_nj, 
+	saveRDS(presurvey_btemp_int_pcod_nj, 
+  				file = here("./output/model output/sdmTMB output/presurvey_btemp_int_pcod_nj.rds"))
+
+	presurvey_btemp_pcod_nj <- readRDS( 
   				file = here("./output/model output/sdmTMB output/presurvey_btemp_pcod_nj.rds"))
 
    # yellowfin sole ####
@@ -371,11 +375,11 @@
 			log_wt_std ~ age_f + s(age0_btemp, by = age_f),
 			data = pcod_dat_trim,
 			mesh = pcod_mesh_trim2,
-			priors = sdmTMBpriors(matern_s = pc_s, matern_st = pc_st),
+			priors = sdmTMBpriors(matern_s = pc_s),
 			spatial = "on",
 			time = "year",
 			spatiotemporal = "IID",	
-			control = sdmTMBcontrol(nlminb_loops = 3, newton_loops = 3))
+			control = sdmTMBcontrol(nlminb_loops = 3))
  	
  	sanity(age0_btemp_int_pcod_nj) # ln_smooth_sigma SE too large?
  	
@@ -389,7 +393,7 @@
 
   # yellowfin sole ####
   
-	age0_btemp_yfin <- 
+	age0_btemp_yfin_nj <- 
 			sdmTMB(	
  				log_wt_std ~ age_f + s(age0_btemp),
 				data = yfinsole_dat,
@@ -399,14 +403,14 @@
 				spatiotemporal = "IID",	
 				control = sdmTMBcontrol(nlminb_loops = 1, newton_loops = 1)) 
 	
-	sanity(age0_btemp_yfin)
+	sanity(age0_btemp_yfin_nj)
 	
 	# check residuals - simulation-based residuals
-	sims <- simulate(age0_btemp_yfin, nsim = 250)
-	dharma_sims <- sims %>% dharma_residuals(age0_btemp_yfin)
+	sims <- simulate(age0_btemp_yfin_nj, nsim = 250)
+	dharma_sims <- sims %>% dharma_residuals(age0_btemp_yfin_nj)
 	
-	saveRDS(age0_btemp_yfin, 
-  				file = here("./output/model output/sdmTMB output/age0_btemp_yfin.rds"))
+	saveRDS(age0_btemp_yfin_nj, 
+  				file = here("./output/model output/sdmTMB output/age0_btemp_yfin_nj.rds"))
  
 	# adjust mesh 
 	yfin_mesh2 <- make_mesh(yfinsole_dat, c("X", "Y"), n_knots = 800, type = "kmeans")
@@ -414,7 +418,7 @@
 	# set up priors
 	pc_s <- pc_matern(range_gt = 290, sigma_lt = 0.2) 
 
- 	age0_btemp_int_yfin <- sdmTMB(
+ 	age0_btemp_int_yfin_nj <- sdmTMB(
 			log_wt_std ~ age_f + s(age0_btemp, by = age_f),
 			data = yfinsole_dat,
 			mesh = yfin_mesh2,
@@ -425,15 +429,23 @@
 			control = sdmTMBcontrol(nlminb_loops = 3, newtown_loops = 3)) #,
 															#step.min = 0.01, step.max = 1)) ### won't converge
 
- 	sanity(age0_btemp_int_yfin)
+ 	sanity(age0_btemp_int_yfin_nj)
  	
- 	sims <- simulate(age0_btemp_int_yfin, nsim = 250)
-	dharma_sims <- sims %>% dharma_residuals(age0_btemp_int_yfin)
+ 	sims <- simulate(age0_btemp_int_yfin_nj, nsim = 250)
+	dharma_sims <- sims %>% dharma_residuals(age0_btemp_int_yfin_nj)
  	
-  saveRDS(age0_btemp_int_yfin, 
-  				file = here("./output/model output/sdmTMB output/age0_btemp_int_yfin.rds"))
+  saveRDS(age0_btemp_int_yfin_nj, 
+  				file = here("./output/model output/sdmTMB output/age0_btemp_int_yfin_nj.rds"))
   
-  #### linear ####
+ 
+  
+  
+  
+  
+  
+  
+  
+   #### linear ####
   
   # gams with sdmTMB 
 
