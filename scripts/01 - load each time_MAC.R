@@ -1,8 +1,8 @@
 	# libraries
 
 	# install sdmTMB version with dispersion formula
-	devtools::install_github("https://github.com/pbs-assess/sdmTMB",
-                         ref = "dispformula2")
+	#devtools::install_github("https://github.com/pbs-assess/sdmTMB",
+  #                       ref = "dispformula2")
 
 	library(here)
 	library(tidyverse)
@@ -26,6 +26,9 @@
 	library(tidymv)
 	library(ggsidekick)
 	library(see)
+	
+	`%!in%` = Negate(`%in%`)
+
 
 	# ggsave func
 	 ggsave_func <- function(x,y,w = 10,h = 10){
