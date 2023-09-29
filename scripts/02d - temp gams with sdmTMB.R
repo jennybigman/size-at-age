@@ -100,7 +100,7 @@
 	# set priors
 	pc <- pc_matern(range_gt = 202, sigma_lt = 0.4) # set up prior
 
- 	presurvey_btemp_int_pcod <- sdmTMB( ##### TROUBLE CONVERGING ############
+ 	presurvey_btemp_int_pcod <- sdmTMB(
 			log_wt_std ~ age_f + s(presurvey_btemp, by = age_f) + s(jday_std),
 			data = pcod_dat_trim,
 			mesh = pcod_mesh_trim2,
