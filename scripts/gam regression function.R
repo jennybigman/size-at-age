@@ -20,6 +20,8 @@
 
 	sole_dat <- tibble(wt, temp1, temp2, age_class_f) %>%
 		mutate(species = rep("sole"))
+	
+	dat_all_test <- bind_rows(cod_dat, sole_dat)
 
 	# function to fit multiple models - here, 2 predictors for each species 
 	mod_func <- function(sp, y){
@@ -72,7 +74,7 @@
 					 model = "no interaction",
 					 variable = "temp1")
 	
-	cod_int_temp1 <- tidy(gam(wt ~ 0 + s(temp1, by = age_class_f), data = cod_dat)) %>%
+	cod_int_temp1 <- tidy(gam(wt ~ 0 + age_class_f + s(temp1, by = age_class_f), data = cod_dat)) %>%
 		mutate_if(is.numeric, round, digits = 2) %>%
 		mutate(species = "cod",
 					 model = "interaction",
@@ -84,7 +86,7 @@
 					 model = "no interaction",
 					 variable = "temp2")
 	
-	cod_int_temp2 <- tidy(gam(wt ~ 0 + s(temp2, by = age_class_f), data = cod_dat)) %>%
+	cod_int_temp2 <- tidy(gam(wt ~ 0 + age_class_f + s(temp2, by = age_class_f), data = cod_dat)) %>%
 		mutate_if(is.numeric, round, digits = 2) %>%
 		mutate(species = "cod",
 					 model = "interaction",
@@ -96,7 +98,7 @@
 					 model = "no interaction",
 					 variable = "temp1")
 		
-	sole_int_temp1 <- tidy(gam(wt ~ 0 + s(temp1, by = age_class_f), data = sole_dat)) %>%
+	sole_int_temp1 <- tidy(gam(wt ~ 0 + age_class_f + s(temp1, by = age_class_f), data = sole_dat)) %>%
 		mutate_if(is.numeric, round, digits = 2) %>%
 		mutate(species = "sole",
 					 model = "interaction",
@@ -108,7 +110,7 @@
 					 model = "no interaction",
 					 variable = "temp2")
 												
-	sole_int_temp2 <- tidy(gam(wt ~ 0 + s(temp2, by = age_class_f), data = sole_dat)) %>%
+	sole_int_temp2 <- tidy(gam(wt ~ 0 + age_class_f + s(temp2, by = age_class_f), data = sole_dat)) %>%
 		mutate_if(is.numeric, round, digits = 2) %>%
 		mutate(species = "sole",
 					 model = "interaction",
