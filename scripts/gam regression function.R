@@ -57,9 +57,7 @@
 
 	test <- map2(df_func$sp, df_func$y, mod_func)
 
-	test[[1]][1] # this is the no interaction model with the first predictor
-	test[[1]][2] # this is the interaction model with the first predictor
-	 
+	# results from function
 	cod_map_gams <- bind_rows(
 		test[[1]][1],
 		test[[1]][2],
@@ -67,7 +65,7 @@
 		test[[2]][2]
 		)
 	
-	# make sure get correct results - they are a little different? 
+	# make sure get correct results so compare with following models
 	cod_temp1 <- tidy(gam(wt ~ 0 + s(temp1), dat = cod_dat)) %>%
 		mutate_if(is.numeric, round, digits = 2) %>%
 		mutate(species = "cod",
@@ -116,7 +114,8 @@
 					 model = "interaction",
 					 variable = "temp2")
 
-	# table for comparison
+	
+	# dfs for comparison
 	cod_mod_output <- bind_rows(
 		cod_temp1,
 		cod_temp2,
