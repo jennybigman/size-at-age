@@ -48,7 +48,10 @@
 		}
 	
 	sp = unique(dat_all_test$species)
-	vars <- c("temp1", "temp2")
+	
+	vars <- dat_all_test %>%
+		select(contains("temp")) %>%
+		names()
 	
 	df_func <- expand_grid(
 		sp = sp,
