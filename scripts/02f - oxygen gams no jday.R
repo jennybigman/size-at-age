@@ -25,15 +25,15 @@
 	# no interaction
 	presurvey_boxy_pol <- 
 			sdmTMB(	
- 					log_wt_std ~ age_f + s(presurvey_boxy),
-					data = pollock_dat,
+ 					log_wt_std ~ 0 + age_f + s(presurvey_boxy) + f_year, #add fixed effect of year
+ 					data = pollock_dat,
 					mesh = pol_mesh,
 					spatial = "on",
 					time = "year",
 					spatiotemporal = "IID",
 					reml = FALSE,
 					control = sdmTMBcontrol(nlminb_loops = 1, newton_loops = 1))
-	
+	# year as random effect
 	sanity(presurvey_boxy_pol)
 	
 	# check residuals - simulation-based residuals
