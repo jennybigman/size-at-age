@@ -1,3 +1,144 @@
+ ###########
+	 
+	 
+	 
+	
+	 ### try soemthing else -- WORKS ####
+	 vars = c("temp", "oxy")
+
+	 mod_func <- function(var, data){
+     m_formula <- paste("wt ~", var)
+     t <- lm(as.formula(m_formula), data = data)
+     t
+	}
+
+	 mod_func("temp", sim_dat1)
+	 
+	 mods <- mapply(mod_func)
+	 
+
+	 all_models <- lapply(c("temp", "oxy"),function(x,y){
+     DVMOD(x,y)
+	}, sim_dat1)
+
+	 
+	###### try again
+	 
+	df_list <- list (sim_dat1, sim_dat2)
+	
+	lm_func <- function(df){
+		
+		temp_fit <- lm(wt ~ temp, data = df)
+		oxy_fit <- lm(wt ~ oxy, data = df)
+		
+	}
+	
+	dfs <- list(sim_dat1, sim_dat2)
+
+	mod_list <- lapply(df_list, lm_func)
+	
+	#### again
+	
+	models <- function(.x) {
+		
+  	temp <- lm(wt ~ temp, data = .x)
+  	oxy <- lm(wt ~ oxy, data = .x)
+
+   list(temp, oxy) |>
+      map_dfr(broom::glance, .id = "model")
+	}
+	
+	mod_list <- lapply(df_list, models)
+	
+	######### again
+	
+	foo <- function(n1, n2) {
+      as.formula(paste("class~", paste(n1, n2, sep = "+")))
+  }
+> foo(name1, name2)
+# class ~ field1 + field2
+# <environment: 0x4d0da58>
+svm(foo(name1, name2), data = df)
+	
+foo <- function(x) {
+      as.formula(paste("wt~", paste(x, sep = "+")))
+}
+
+vars <- c("temp", "oxy")
+
+formulas <- lapply(vars, foo)
+
+lm_func <- function(x){
+	fit <- lm(x, data = sim_dat1)
+	fit_tidy <- broom::glance(fit)
+}
+
+mod_lists <- lapply(formulas, lm_func)
+
+# try again
+
+ model_func <- function(x)
+ 	lm(paste0(wt, "~", x), data = sim_dat1)
+ 
+ map(model_func, vars)
+
+	 
+	reg <- function(y,x) {
+   lm(paste0(y,"~",x),data=sim_dat1)
+}
+	mapply(reg, y = "wt", x = vars, SIMPLIFY = F)
+	# above works
+	
+	# try with dfs
+	reg <- function(x, df) {
+   lm(paste0("wt ~",x),data=df)
+}
+	
+	output <- mapply(reg, x = vars, df = df_list, SIMPLIFY = F)
+
+	
+	## try again
+	
+	lm_func <- function(x){
+		paste0("wt ~ ", x)
+	}
+	
+	forms <- sapply(vars, lm_func)
+		
+	run_lm_func <- function(df){
+		lm(as.formula(forms), data = df)
+	}	
+		
+	mod_list <- lapply(df_list, run_lm_func)
+
+	#### try again
+	
+	results = map_df(1:length(df_list), function(i){
+  
+  rf_model <- randomForest::randomForest(Species ~., data = df_list[[i]])
+  rf_model_roc <- roc(iris$Species,rf_model$votes[,2])
+  df_auc <- auc(rf_model_roc)
+  
+  data.frame(
+    dataset = paste0("dataset", i),
+    auc = as.numeric(df_auc)
+  )
+  
+})
+
+results
+
+
+	
+	results = purrr::map_df(1:length(df_list), function(i){
+  
+  temp_model <- lm(wt ~ temp, data = df_list[[i]])
+  oxy_model <- lm(wt ~ oxy, data = df_list[[i]])
+  
+})
+
+results
+
 
 
 
