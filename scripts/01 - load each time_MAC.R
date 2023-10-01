@@ -294,35 +294,7 @@
 	pcod_dat$age_f <- droplevels(pcod_dat$age_f)
 	pollock_dat$age_f <- droplevels(pollock_dat$age_f)
 	yfinsole_dat$age_f <- droplevels(yfinsole_dat$age_f)
-	
-	## into list
-	#dat_list <- list(pcod_dat, pollock_dat, yfinsole_dat)
-	#
-  #
- 	pcod_age_sum <- pcod_dat %>%
-		group_by(age) %>%
-		summarize(n())
-
- 	yfin_age_sum <- yfinsole_dat %>%
-		group_by(age) %>%
-		summarize(n())
- 	
- 	yfin_age_sum <- yfinsole_dat %>%
-		group_by(age) %>%
-		summarize(n())
- 	
- 	pol_age_sum <- pollock_dat %>%
-		group_by(age) %>%
-		summarize(n())
-
-
-
- 	pol_test_df <- specimen_dat_std[[2]]
-	
- 	pollock_age_sum <- pol_test_df %>%
-		group_by(age) %>%
-		summarize(n())
-
- 	pollock_yr_sum <- pol_test_df %>%
-		group_by(year) %>%
-		summarize(n())
+	# dataset for pcod has too few samples in age 1 and 2 so remove
+  drop_age <- c(1, 2)
+  pcod_dat_trim <- pcod_dat %>% filter(age %!in% drop_age)
+  pcod_dat_trim$age_f <- droplevels(pcod_dat_trim$age_f)
