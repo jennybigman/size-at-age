@@ -54,7 +54,7 @@
 		form1 <- paste0("log_wt ~ 0 + age_f_ord + s(" , y, ")")
 		form2 <- paste0("log_wt ~ 0 + age_f_ord + s(" , y, ", by = age_f_ord)")
 		 
- 		# model without interaction
+ 		# model without interaction ### add folds
 		mod_cv <- 
 			try(
 				sdmTMB_cv(	
@@ -64,6 +64,8 @@
 					spatial = "on",
 					time = "year",
 					spatiotemporal = "IID",
+					k_folds = max(new_dat$fold),
+        	fold_ids = new_dat$fold,
 					control = sdmTMBcontrol(nlminb_loops = 1)),
 					silent = FALSE)
 		
@@ -86,6 +88,8 @@
 					priors = sdmTMBpriors(matern_s = pc),
 					time = "year",
 					spatiotemporal = "IID",
+					k_folds = max(new_dat$fold),
+        	fold_ids = new_dat$fold,
 					control = sdmTMBcontrol(nlminb_loops = 3)),
 					silent = FALSE)
 		
