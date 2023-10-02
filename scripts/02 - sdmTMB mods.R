@@ -51,8 +51,8 @@
 		print(paste('running no int model for', sp, "with", y))
 		
 		# set up formulas
-		form1 <- paste0("log_wt ~ 0 + age_f_ord + s(" , "y", ")")
-		form2 <- paste0("log_wt ~ 0 + age_f_ord + s(" , "y", ", by = age_f_ord)")
+		form1 <- paste0("log_wt ~ 0 + age_f_ord + s(" , y, ")")
+		form2 <- paste0("log_wt ~ 0 + age_f_ord + s(" , y, ", by = age_f_ord)")
 		 
  		# model without interaction
 		mod_cv <- 
