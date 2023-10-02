@@ -45,7 +45,7 @@
 		mesh <- make_mesh(new_dat, xy_cols = c("X", "Y"), n_knots = 400, type = "kmeans")
 	
 		# set up prior
-		pc <- pc_matern(range_gt = 300, sigma_lt = 0.4) # set up prior
+		pc <- pc_matern(range_gt = 300, sigma_lt = 0.4)
 
 		# run models		
 		print(paste('running no int model for', sp, "with", y))
@@ -54,7 +54,7 @@
 		form1 <- paste0("log_wt ~ 0 + age_f_ord + s(" , y, ")")
 		form2 <- paste0("log_wt ~ 0 + age_f_ord + s(" , y, ", by = age_f_ord)")
 		 
- 		# model without interaction ### add folds
+ 		# model without interaction 
 		mod_cv <- 
 			try(
 				sdmTMB_cv(	
