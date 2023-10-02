@@ -25,7 +25,7 @@
 	
 	dat_all$year_f <- as.factor(dat_all$year)
 			
-	# remove any rows with no age0 oxygen data (the year in which some individuals were age 0 was prior to 1970, first year of hindcast)
+	# remove any rows with no age0 environmental data (the year in which some individuals were age 0 was prior to 1970, first year of hindcast)
 	dat_all <- dat_all %>%
 		drop_na(age0_boxy)
 	
