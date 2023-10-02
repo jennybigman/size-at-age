@@ -294,7 +294,11 @@
 	pcod_dat$age_f <- droplevels(pcod_dat$age_f)
 	pollock_dat$age_f <- droplevels(pollock_dat$age_f)
 	yfinsole_dat$age_f <- droplevels(yfinsole_dat$age_f)
+	
 	# dataset for pcod has too few samples in age 1 and 2 so remove
   drop_age <- c(1, 2)
   pcod_dat_trim <- pcod_dat %>% filter(age %!in% drop_age)
   pcod_dat_trim$age_f <- droplevels(pcod_dat_trim$age_f)
+
+
+ 
