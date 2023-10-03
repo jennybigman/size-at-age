@@ -23,16 +23,13 @@
 	
 	dat_all <- lapply(dat_list, lat_quantiles) %>% bind_rows()
 	
-	dat_all$year_f <- as.factor(dat_all$year)
-			
 	# remove any rows with no age0 environmental data (the year in which some individuals were age 0 was prior to 1970, first year of hindcast)
 	dat_all <- dat_all %>%
 		drop_na(age0_boxy)
-	
 
-	# function to fit multiple models
+	# function to fit multiple models with no spatiotemporal RE but year RE
 	
-	sdmTMB_cv_func <- function(sp, y){
+	sdmTMB_cv_yr_RE_func <- function(sp, y){
 		
 		# filter df by species
 		new_dat <- dat_all %>% filter(species == sp)
@@ -41,6 +38,10 @@
   	levels_to_ord <- sort(unique(new_dat$age_f))
   	new_dat$age_f_ord <- ordered(new_dat$age_f, levels = c(levels_to_ord))	
   	
+  	# make year a factor and drop unused levels
+		new_dat$year_f <- as.factor(new_dat$year)
+		new_dat$year_f <- droplevels(new_dat$year_f)
+
 		# make mesh
 		mesh <- make_mesh(new_dat, xy_cols = c("X", "Y"), n_knots = 400, type = "kmeans")
 	
@@ -51,28 +52,33 @@
 		print(paste('running no int model for', sp, "with", y))
 		
 		# set up formulas
-		form1 <- paste0("log_wt ~ 0 + age_f_ord + s(" , y, ")")
-		form2 <- paste0("log_wt ~ 0 + age_f_ord + s(" , y, ", by = age_f_ord)")
+		form1 <- paste0("log_wt ~ 0 + age_f_ord + s(" , y, ") + (1|year_f)")
+		form2 <- paste0("log_wt ~ 0 + age_f_ord + s(" , y, ", by = age_f_ord) + (1|year_f)")
 		 
  		# model without interaction 
 		mod_cv <- 
 			try(
-				sdmTMB_cv(	
- 					formula = as.formula(form1),
+				sdmTMB_cv(
+					formula = as.formula(form1),
 					data = new_dat,
 					mesh = mesh,
 					spatial = "on",
-					time = "year",
-					spatiotemporal = "IID",
+					spatiotemporal = "off",
 					k_folds = max(new_dat$fold),
         	fold_ids = new_dat$fold,
-					control = sdmTMBcontrol(nlminb_loops = 1)),
-					silent = FALSE)
+					control = sdmTMBcontrol(nlminb_loops = 3)))
+
 		
 		 if(class(mod_cv) == "try-error"){
+		 	
     		print(paste("error!"))
 		 	}
 		 else{
+		 	
+		 		write_rds(mod_cv, 
+				file = paste0(here(), "/output/model output/sdmTMB output/with year as RE/", 
+										 y, "_no_int_mod_yr_RE_", sp, ".rds"))
+		
     		print(paste("no int model for", sp, "with", y, "complete"))
   		}
 		
@@ -80,32 +86,30 @@
 
 		mod_int_cv <- 
 			try(
-				sdmTMB(	
+				sdmTMB_cv(	
  					formula = as.formula(form2),
 					data = new_dat,
 					mesh = mesh,
 					spatial = "on",
-					priors = sdmTMBpriors(matern_s = pc),
-					time = "year",
-					spatiotemporal = "IID",
+					spatiotemporal = "off",
 					k_folds = max(new_dat$fold),
         	fold_ids = new_dat$fold,
-					control = sdmTMBcontrol(nlminb_loops = 3)),
-					silent = FALSE)
+					control = sdmTMBcontrol(nlminb_loops = 3)))
 		
 			 if(class(mod_int_cv) == "try-error"){
     		print(paste("error!"))
 		 	}
 		 else{
-    		print(paste("int model for", sp, "for", y, "complete"))
-  		}
-
-		# put model objects into a list for each species and variable
-		mod_cv_list <- list(mod_cv, mod_int_cv)
+		 	
+		 	write_rds(mod_int_cv, 
+				file = paste0(here(), "/output/model output/sdmTMB output/with year as RE/", 
+										 y, "_int_mod_yr_RE_", sp, ".rds"))
 		
+    		print(paste("int model for", sp, "for", y, "complete"))
+		 }
 	}
 	
-	sp = unique(dat_all$species)
+	sp <- unique(dat_all$species)
 	
 	vars <- dat_all %>%
 		select(contains(c("btemp", "boxy"))) %>%
@@ -116,5 +120,39 @@
 		y = vars
 	)
 
-	sdmTMB_mod_lists <- map2(df_func$sp, df_func$y, sdmTMB_cv_func)
+	map2(df_func$sp, df_func$y, sdmTMB_cv_yr_RE_func)
+	
+	# read in saved models to check fits
+	
+	# try one mod
+	age0_boxy_int_mod_yr_RE_df_pcod <- read_rds(
+		file = here('./output/model output/sdmTMB output/with year as RE/age0_boxy_int_mod_yr_RE_df_pcod.rds'))
+	
+	sanity(age0_boxy_int_mod_yr_RE_df_pcod$models[[1]])
+	
+	
+	
+	file_list <- list.files(path = paste0(here(), ("/output/model output/sdmTMB output/with year as RE/")))
+
+  prestring <- paste0(here(), ("/output/model output/sdmTMB output/with year as RE/"))
+  
+  mod_names_list <- list()
+  
+  for(i in file_list){
+  	mod_names_list[[i]] <- paste0(prestring, i) # I used a for loop!
+  }
+  
+  mod_list <- lapply(mod_names_list, readRDS)
+  
+  # separate models by species ####
+  
+	# pollock #
+	pol_mod_list <- mod_list[grep("pol", names(mod_list))]
+	
+	# pcod #
+	pcod_mod_list <- mod_list[grep("pcod", names(mod_list))]
+		
+	# yfin #
+	yfin_mod_list <- mod_list[grep("yfin", names(mod_list))]
+	
 	
