@@ -23,6 +23,7 @@
 		
 		# set up formulas
 		form1 <- paste0("log_wt_std ~ 0 + age_f_ord + s(" , y, ") + (1|year_f)")
+		form2 <- paste0("log_wt_std ~ 0 + age_f_ord + s(" , y, ", by = age_f_ord) + (1|year_f)")
 
  		# model without interaction 
 		mod_cv <- 
@@ -72,12 +73,65 @@
 			
     		print('extra optim did not help')
 		 
-		 } }
+					  } }
+		
+		# model with interaction
+		print(paste('running int model for', sp, "with", y))
+
+		mod_int_cv <- 
+			try(
+				sdmTMB_cv(	
+ 					formula = as.formula(form2),
+					data = new_dat,
+					mesh = mesh,
+					spatial = "on",
+					spatiotemporal = "off",
+					k_folds = max(new_dat$fold),
+        	fold_ids = new_dat$fold,
+					control = sdmTMBcontrol(nlminb_loops = 3)))
+		
+			 if (class(mod_int_cv) == "try-error"){
+		 	
+    		print(paste("error!"))
+		 
+		 } else if (sanity(mod_int_cv$models[[1]])[[9]] == "TRUE") {
+		 	 	
+		 		write_rds(mod_int_cv, 
+					file = paste0(here(), "/output/model output/sdmTMB output/with year as RE/", # change to file path on local machine
+										 y, "_int_mod_yr_RE_", sp, ".rds"))
+		 		
+		 		print(paste("int model for", sp, "with", y, "complete"))
+
+		 } else {
+	
+				print('running extra optimization')
+				
+				mod_int_cv_eo <- run_extra_optimization(mod_int_cv$models[[1]], nlminb_loops = 0, newton_loops = 1)
+				# this doesn't give me an elpd value :/
+		
+						if (class(mod_int_cv_eo) == "try-error"){
+		 				
+    					print(paste("error!"))
+					
+						} else if (sanity(mod_int_cv_eo)[[9]] == "TRUE") { 
+		 				 	
+		 					write_rds(mod_int_cv_eo, 
+								file = paste0(here(), "/output/model output/sdmTMB output/with year as RE/", # change to file path on local machine
+										 y, "_int_mod_yr_RE_", sp, ".rds"))
+		 		
+		 		print(paste("int model for", sp, "with", y, "complete"))
+
+					  } else {
+			
+    		print('extra optim did not help')
+		 
+					  } 
+				}
 	}
 	
 	
 	
-	sp <- c("pcod", "pollock")
+	sp <- ("pcod")
 	
 	vars <- c('presurvey_btemp', "yrprior_btemp")
 	
