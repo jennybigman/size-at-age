@@ -52,8 +52,8 @@
 		print(paste('running no int model for', sp, "with", y))
 		
 		# set up formulas
-		form1 <- paste0("log_wt ~ 0 + age_f_ord + s(" , y, ") + (1|year_f)")
-		form2 <- paste0("log_wt ~ 0 + age_f_ord + s(" , y, ", by = age_f_ord) + (1|year_f)")
+		form1 <- paste0("log_wt_std ~ 0 + age_f_ord + s(" , y, ") + (1|year_f)")
+		form2 <- paste0("log_wt_std ~ 0 + age_f_ord + s(" , y, ", by = age_f_ord) + (1|year_f)")
 		 
  		# model without interaction 
 		mod_cv <- 
@@ -74,6 +74,8 @@
     		print(paste("error!"))
 		 	}
 		 else{
+		 		
+		 		s <- sanity(mod_cv)
 		 	
 		 		write_rds(mod_cv, 
 				file = paste0(here(), "/output/model output/sdmTMB output/with year as RE/", 
@@ -124,14 +126,6 @@
 	
 	# read in saved models to check fits
 	
-	# try one mod
-	age0_boxy_int_mod_yr_RE_df_pcod <- read_rds(
-		file = here('./output/model output/sdmTMB output/with year as RE/age0_boxy_int_mod_yr_RE_df_pcod.rds'))
-	
-	sanity(age0_boxy_int_mod_yr_RE_df_pcod$models[[1]])
-	
-	
-	
 	file_list <- list.files(path = paste0(here(), ("/output/model output/sdmTMB output/with year as RE/")))
 
   prestring <- paste0(here(), ("/output/model output/sdmTMB output/with year as RE/"))
@@ -154,5 +148,7 @@
 		
 	# yfin #
 	yfin_mod_list <- mod_list[grep("yfin", names(mod_list))]
+	
+	
 	
 	
