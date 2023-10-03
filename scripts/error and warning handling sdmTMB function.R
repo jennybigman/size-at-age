@@ -62,7 +62,7 @@
 					
 						} else if (sanity(mod_cv_eo$models[[1]])[[9]] == "TRUE") {
 		 				 	
-		 					write_rds(mod_cv, 
+		 					write_rds(mod_cv_eo, 
 								file = paste0(here(), "/output/model output/sdmTMB output/with year as RE/", # change to file path on local machine
 										 y, "_no_int_mod_yr_RE_", sp, ".rds"))
 		 		
