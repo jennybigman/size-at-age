@@ -48,7 +48,7 @@
 		# set up prior
 		pc <- pc_matern(range_gt = 300, sigma_lt = 0.4)
 
-		# run models		
+		#### run models	 ####	
 		print(paste('running no int model for', sp, "with", y))
 		
 		# set up formulas
@@ -68,22 +68,44 @@
         	fold_ids = new_dat$fold,
 					control = sdmTMBcontrol(nlminb_loops = 3)))
 
-		
-		 if(class(mod_cv) == "try-error"){
+	# deal with errors and warnings	
+	 if (class(mod_cv) == "try-error"){
 		 	
     		print(paste("error!"))
-		 	}
-		 else{
-		 		
-		 		s <- sanity(mod_cv)
-		 	
+		 
+		 } else if (sanity(mod_cv$models[[1]])[[9]] == "TRUE") {
+		 	 	
 		 		write_rds(mod_cv, 
-				file = paste0(here(), "/output/model output/sdmTMB output/with year as RE/", 
+					file = paste0(here(), "/output/model output/sdmTMB output/with year as RE/", # change to file path on local machine
 										 y, "_no_int_mod_yr_RE_", sp, ".rds"))
+		 		
+		 		print(paste("no int model for", sp, "with", y, "complete"))
+
+		 } else {
+	
+				print('running extra optimization')
+				
+				mod_cv_eo <- run_extra_optimization(mod_cv$models[[1]], nlminb_loops = 0, newton_loops = 1)
 		
-    		print(paste("no int model for", sp, "with", y, "complete"))
-  		}
-		
+						if (class(mod_cv_eo) == "try-error"){
+		 				
+    					print(paste("error!"))
+					
+						} else if (sanity(mod_cv_eo$models[[1]])[[9]] == "TRUE") {
+		 				 	
+		 					write_rds(mod_cv_eo, 
+								file = paste0(here(), "/output/model output/sdmTMB output/with year as RE/", # change to file path on local machine
+										 y, "_no_int_mod_yr_RE_", sp, ".rds"))
+		 		
+		 		print(paste("no int model for", sp, "with", y, "complete"))
+
+					  } else {
+			
+    		print('extra optim did not help')
+		 
+		 } }
+	
+		# model with interaction
 		print(paste('running int model for', sp, "with", y))
 
 		mod_int_cv <- 
@@ -98,18 +120,47 @@
         	fold_ids = new_dat$fold,
 					control = sdmTMBcontrol(nlminb_loops = 3)))
 		
-			 if(class(mod_int_cv) == "try-error"){
-    		print(paste("error!"))
-		 	}
-		 else{
+			 if (class(mod_int_cv) == "try-error"){
 		 	
-		 	write_rds(mod_int_cv, 
-				file = paste0(here(), "/output/model output/sdmTMB output/with year as RE/", 
+    		print(paste("error!"))
+		 
+		 } else if (sanity(mod_int_cv$models[[1]])[[9]] == "TRUE") {
+		 	 	
+		 		write_rds(mod_int_cv, 
+					file = paste0(here(), "/output/model output/sdmTMB output/with year as RE/", # change to file path on local machine
 										 y, "_int_mod_yr_RE_", sp, ".rds"))
+		 		
+		 		print(paste("int model for", sp, "with", y, "complete"))
+
+		 } else {
+	
+				print('running extra optimization')
+				
+				mod_int_cv_eo <- run_extra_optimization(mod_int_cv$models[[1]], nlminb_loops = 0, newton_loops = 1)
 		
-    		print(paste("int model for", sp, "for", y, "complete"))
-		 }
+						if (class(mod_int_cv_eo) == "try-error"){
+		 				
+    					print(paste("error!"))
+					
+						} else if (sanity(mod_int_cv_eo$models[[1]])[[9]] == "TRUE") {
+		 				 	
+		 					write_rds(mod_int_cv_eo, 
+								file = paste0(here(), "/output/model output/sdmTMB output/with year as RE/", # change to file path on local machine
+										 y, "_int_mod_yr_RE_", sp, ".rds"))
+		 		
+		 		print(paste("int model for", sp, "with", y, "complete"))
+
+					  } else {
+			
+    		print('extra optim did not help')
+		 
+					  } 
+				}
 	}
+		
+		
+		
+	# run function - this will take a while (>30 mins)
 	
 	sp <- unique(dat_all$species)
 	
@@ -123,6 +174,8 @@
 	)
 
 	map2(df_func$sp, df_func$y, sdmTMB_cv_yr_RE_func)
+	
+	############# EDIT BELOW HERE ##########################################################################
 	
 	# read in saved models to check fits
 	
