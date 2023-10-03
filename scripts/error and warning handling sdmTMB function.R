@@ -45,7 +45,7 @@
 		 } else if (sanity(mod_cv$models[[1]])[[9]] == "TRUE") {
 		 	 	
 		 		write_rds(mod_cv, 
-					file = paste0(here(), "/output/model output/sdmTMB output/with year as RE/", 
+					file = paste0(here(), "/output/model output/sdmTMB output/with year as RE/", # change to file path on local machine
 										 y, "_no_int_mod_yr_RE_", sp, ".rds"))
 		 		
 		 		print(paste("no int model for", sp, "with", y, "complete"))
@@ -63,7 +63,7 @@
 						} else if (sanity(mod_cv_eo$models[[1]])[[9]] == "TRUE") {
 		 				 	
 		 					write_rds(mod_cv, 
-								file = paste0(here(), "/output/model output/sdmTMB output/with year as RE/", 
+								file = paste0(here(), "/output/model output/sdmTMB output/with year as RE/", # change to file path on local machine
 										 y, "_no_int_mod_yr_RE_", sp, ".rds"))
 		 		
 		 		print(paste("no int model for", sp, "with", y, "complete"))
@@ -99,20 +99,3 @@
 	
 	
 	
-	
-	
-	# file path for mods with year as RE
-	file_path_yr_RE <- "/output/model output/sdmTMB output/with year as RE/"
-	
-	s <- read_rds(file = 
-		paste0(here(), file_path_yr_RE, 'sanity for_presurvey_btemp_no_int_mod_yr_RE_pcod.rds'))
-
-
-		
-	# try one mod
-	presurvey_btemp_no_int_mod_yr_RE_pcod <- read_rds(
-		file = here('./output/model output/sdmTMB output/with year as RE/presurvey_btemp_no_int_mod_yr_RE_pcod.rds'))
-	
-	s <- unlist(sanity(presurvey_btemp_int_mod_yr_RE_pcod$models[[1]]))[[9]]
-
-								
