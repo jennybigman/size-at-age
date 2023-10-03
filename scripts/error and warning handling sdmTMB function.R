@@ -22,7 +22,7 @@
 		print(paste('running no int model for', sp, "with", y))
 		
 		# set up formulas
-		form1 <- paste0("log_wt ~ 0 + age_f_ord + s(" , y, ") + (1|year_f)")
+		form1 <- paste0("log_wt_std ~ 0 + age_f_ord + s(" , y, ") + (1|year_f)")
 
  		# model without interaction 
 		mod_cv <- 
@@ -42,7 +42,7 @@
 		 	
     		print(paste("error!"))
 		 
-		 } else if (unlist(sanity(mod_cv$models[[1]]))[[9]] == "TRUE") {
+		 } else if (sanity(mod_cv$models[[1]])[[9]] == "TRUE") {
 		 	 	
 		 		write_rds(mod_cv, 
 					file = paste0(here(), "/output/model output/sdmTMB output/with year as RE/", 
@@ -50,31 +50,29 @@
 		 		
 		 		print(paste("no int model for", sp, "with", y, "complete"))
 
-		 } else if (unlist(sanity(mod_cv$models[[1]]))[[9]] == "FALSE") {
+		 } else {
 	
 				print('running extra optimization')
 				
-				#mod_cv_eo <- run_extra_optimization(mod_cv, nlminb_loops = 0, newton_loops = 1)
-				
-				mod_cv_eo <- 
-					try(
-						sdmTMB_cv(
-							formula = as.formula(form1),
-							data = new_dat,
-							mesh = mesh,
-							spatial = "on",
-							spatiotemporal = "off",
-							k_folds = max(new_dat$fold),
-      	  		fold_ids = new_dat$fold,
-							control = sdmTMBcontrol(nlminb_loops = 3, newton_loops = 1)))
-		 
-				write_rds(mod_cv_eo, 
-					file = paste0(here(), "/output/model output/sdmTMB output/with year as RE/", 
-									 y, "_no_int_mod_yr_RE_", sp, ".rds"))
+				mod_cv_eo <- run_extra_optimization(mod_cv$models[[1]], nlminb_loops = 0, newton_loops = 1)
 		
-    		print(paste("no int model for", sp, "with", y, "complete"))
+						if (class(mod_cv_eo) == "try-error"){
+		 				
+    					print(paste("error!"))
+					
+						} else if (sanity(mod_cv_eo$models[[1]])[[9]] == "TRUE") {
+		 				 	
+		 					write_rds(mod_cv, 
+								file = paste0(here(), "/output/model output/sdmTMB output/with year as RE/", 
+										 y, "_no_int_mod_yr_RE_", sp, ".rds"))
+		 		
+		 		print(paste("no int model for", sp, "with", y, "complete"))
+
+					  } else {
+			
+    		print('extra optim did not help')
 		 
-		 } 
+		 } }
 	}
 	
 	
@@ -112,7 +110,7 @@
 
 		
 	# try one mod
-	presurvey_btemp_int_mod_yr_RE_pcod <- read_rds(
+	presurvey_btemp_no_int_mod_yr_RE_pcod <- read_rds(
 		file = here('./output/model output/sdmTMB output/with year as RE/presurvey_btemp_no_int_mod_yr_RE_pcod.rds'))
 	
 	s <- unlist(sanity(presurvey_btemp_int_mod_yr_RE_pcod$models[[1]]))[[9]]
