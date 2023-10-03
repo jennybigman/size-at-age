@@ -12,8 +12,8 @@
 		age_f = unique(pollock_dat$age_f), 
 		presurvey_btemp = seq(from = min(pollock_dat$presurvey_btemp),
 													to = max(pollock_dat$presurvey_btemp),
-													length.out = 100),
-		year = 1993) # what year do I want to show?
+													length.out = 100)) #,
+	#	year = 1993) # what year do I want to show?
 	
 	
 	pred <- predict(presurvey_btemp_int_pol_nj,

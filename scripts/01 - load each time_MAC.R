@@ -31,9 +31,9 @@
 
 
 	# ggsave func
-	 ggsave_func <- function(x,y,w = 10,h = 10){
+	ggsave_func <- function(x, y, w = 10, h = 10){
   	ggsave(plot = x,
-    file = paste(y,".png",sep=""),
+    file = paste(y,".png", sep = ""),
     width = w, height = h, units = "in")
   }
   
@@ -68,20 +68,20 @@
 
 	## code random effect haul and year ##
 	
-		year_sort <- sort(unique(specimen_dat$year))
-		ID <- letters[1:length(year_sort)]
-		
-		year_ID <- data.frame(year_sort, ID) %>%
-			rename(year = year_sort)
-		
-		specimen_dat <- left_join(specimen_dat, year_ID, by = "year")
+	year_sort <- sort(unique(specimen_dat$year))
+	ID <- letters[1:length(year_sort)]
 	
-		specimen_dat <- specimen_dat %>%
-			mutate(haul_id = paste(ID, haul, sep = "_"))
+	year_ID <- data.frame(year_sort, ID) %>%
+		rename(year = year_sort)
 	
-		specimen_dat <- specimen_dat %>%
-		mutate(ID_f = as.factor(ID),
-					 haul_id_f = as.factor(haul_id))
+	specimen_dat <- left_join(specimen_dat, year_ID, by = "year")
+
+	specimen_dat <- specimen_dat %>%
+		mutate(haul_id = paste(ID, haul, sep = "_"))
+
+	specimen_dat <- specimen_dat %>%
+	mutate(ID_f = as.factor(ID),
+				 haul_id_f = as.factor(haul_id))
 	
 	# put each species df into a list
 	specimen_dat_list <- list()
