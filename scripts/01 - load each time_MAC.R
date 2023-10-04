@@ -272,7 +272,15 @@
 
 	specimen_dat_std <- lapply(specimen_dat, std_func)
 	
-	
+	# change species names
+  
+  name_change_func <- function(df){
+  	
+  	df <- df %>% mutate(species = str_remove(species, "df_"))
+  }
+ 
+	specimen_dat_std <- lapply(specimen_dat_std, name_change_func)
+  
 	# separate for species-specific wrangling tasks
 	pcod_dat <- specimen_dat_std[[1]]
 	pollock_dat <- specimen_dat_std[[2]]
@@ -300,5 +308,3 @@
   pcod_dat_trim <- pcod_dat %>% filter(age %!in% drop_age)
   pcod_dat_trim$age_f <- droplevels(pcod_dat_trim$age_f)
 
-
- 
