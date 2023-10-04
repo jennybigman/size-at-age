@@ -8,6 +8,8 @@
 	dat_all <- dat_all %>%
 		drop_na(age0_boxy)
 
+	#### fit models without interaction ####
+	
 	# function to fit multiple models with no spatiotemporal RE but year RE
 	
 	sdmTMB_yr_RE_func <- function(sp, y){
@@ -96,7 +98,7 @@
 		}
 	
 	
-	# run function - this will take a while (>30 mins)
+	# run function
 	
 	sp <- unique(dat_all$species)
 	
@@ -111,36 +113,8 @@
 
 	map2(df_func$sp, df_func$y, sdmTMB_yr_RE_func)
 	
-	############# EDIT BELOW HERE ##########################################################################
 	
-	# read in saved models to check fits
-	
-	file_list <- list.files(path = paste0(here(), ("/output/model output/sdmTMB output/with year as RE/")))
-
-  prestring <- paste0(here(), ("/output/model output/sdmTMB output/with year as RE/"))
-  
-  mod_names_list <- list()
-  
-  for(i in file_list){
-  	mod_names_list[[i]] <- paste0(prestring, i) # I used a for loop!
-  }
-  
-  mod_list <- lapply(mod_names_list, readRDS)
-  
-  # separate models by species ####
-  
-	# pollock #
-	pol_mod_list <- mod_list[grep("pol", names(mod_list))]
-	
-	# pcod #
-	pcod_mod_list <- mod_list[grep("pcod", names(mod_list))]
-		
-	# yfin #
-	yfin_mod_list <- mod_list[grep("yfin", names(mod_list))]
-	
-	##########################################################
-	
-	#### models with interactions ####
+	#### fit models with interactions ####
 	sdmTMB_yr_RE_int_func <- function(sp, y){
 		
 		# wrangling and making a mesh 
@@ -220,6 +194,7 @@
 								s_eo
 		
 								ind_eo <- which(s_eo == FALSE) %>% as.numeric()
+								
 	
 								# if model with extra optimization (eo) threw an error, rerun with no newtown loops
  										if (class(mod_int_eo) == "try-error"){
@@ -232,12 +207,12 @@
 										} else if (sanity(mod_int_eo)[[9]] == "TRUE") {
 		 				 	
 		 									write_rds(mod_int_eo, 
-												file = paste0(here(), here(), file_path_all, y, "_int_mod_yr_RE_", sp, ".rds"))
+												file = paste0(here(), file_path_all, y, "_int_mod_yr_RE_", sp, ".rds"))
 		 						
 		 									print(paste("int model for", sp, "with", y, "complete"))
 		 									
 		 						# if model with extra optimization (eo) does not look all good aside from a few non-issues, tell me
-										} else if (any(ind2 %!in% not_probs)) { 
+										} else if (any(ind_eo %!in% not_probs)) { 
 											
 											print('boo')
 											
@@ -245,26 +220,26 @@
 										} else {
 								
 												write_rds(mod_int_eo, 
-													file = paste0(here(), here(), file_path_all, y, "_int_mod_yr_RE_", sp, ".rds"))
+													file = paste0(here(), file_path_all, y, "_int_mod_yr_RE_", sp, ".rds"))
 		 									
 										}
 								
 											
 							# if original model object before optimization (mod_int) looks good aside from a few non-issues, save model			
 									 	
-					  		} else {
+					  	 } else {
 							
     								 		write_rds(mod_int_eo, 
-													file = paste0(here(), here(), file_path_all, y, "_int_mod_yr_RE_", sp, ".rds"))
+													file = paste0(here(), file_path_all, y, "_int_mod_yr_RE_", sp, ".rds"))
 		 													
 		 										print(paste("int model for", sp, "with", y, "complete"))
 		 										
 					  } 
-				}
+	}
+	
 		
 	
-	
-	# run function - this will take a while (>30 mins)
+	# run function
 	
 	sp <- unique(dat_all$species)
 	
@@ -280,4 +255,29 @@
 	map2(df_func$sp, df_func$y, sdmTMB_yr_RE_int_func)
 	
 	
+	#### read in models ####
 	
+	file_list <- list.files(path = paste0(here(), file_path_all))
+
+  prestring <- paste0(here(), file_path_all)
+  
+  mod_names_list <- list()
+  
+  for(i in file_list){
+  	mod_names_list[[i]] <- paste0(prestring, i) # I used a for loop!
+  }
+  
+  mod_list <- lapply(mod_names_list, readRDS)
+  
+  # separate models by species ####
+  
+	# pollock #
+	pol_mod_list <- mod_list[grep("pol", names(mod_list))]
+	
+	# pcod #
+	pcod_mod_list <- mod_list[grep("pcod", names(mod_list))]
+		
+	# yfin #
+	yfin_mod_list <- mod_list[grep("yfin", names(mod_list))]
+	
+	#### compare models ####
