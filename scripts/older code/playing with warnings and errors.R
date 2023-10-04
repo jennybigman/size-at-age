@@ -118,7 +118,7 @@
 	yrprior_btemp_int_mod_yr_RE_pcod <- read_rds(
 		file = here('./output/model output/sdmTMB output/with year as RE/yrprior_btemp_int_mod_yr_RE_pcod.rds'))
 
-	s <- unlist(sanity(presurvey_btemp_no_int_mod_yr_RE_pcod$models[[1]]))
+	s <- unlist(sanity(yrprior_btemp_int_mod_yr_RE_pcod$models[[1]]))
 
 	ind <- which(s == FALSE)
 	
