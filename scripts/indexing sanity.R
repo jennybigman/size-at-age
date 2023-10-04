@@ -71,7 +71,7 @@
 		 		
 		 		print(paste("int model for", sp, "with", y, "complete"))
 
-		 } else if (any(test %!in% not_probs)) {
+		 } else if (any(ind %!in% not_probs)) {
 					
 		 		print('running extra optimization')
 				
