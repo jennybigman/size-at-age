@@ -162,10 +162,10 @@
 								control = sdmTMBcontrol(nlminb_loops = 3)))
 
 					# run and index sanity checks for later optimization
-					s <- unlist(sanity(mod_int))
-					s
+					s_int <- unlist(sanity(mod_int))
+					s_int
 		
-					ind <- which(s == FALSE) %>% as.numeric()
+					ind_int <- which(s_int == FALSE) %>% as.numeric()
 	
 				# deal with warnings and issues
 					
@@ -184,7 +184,7 @@
 
 		 		 # if no error and sanity() does not look good aside from a few non-issues (see above), rerun model with extra optimization
 		 						
-						} else if (any(ind %!in% not_probs)) { 
+						} else if (any(ind_int %!in% not_probs)) { 
 					
 		 						print('running extra optimization')
 								
@@ -196,12 +196,29 @@
 								ind_eo <- which(s_eo == FALSE) %>% as.numeric()
 								
 	
-								# if model with extra optimization (eo) threw an error, rerun with no newtown loops
+								# if model with extra optimization (eo) threw an error, rerun with no newton loops
  										if (class(mod_int_eo) == "try-error"){
 		 						
 											print(paste("newton loops threw error, running with no newtown loops"))
 
 											mod_int_eo <- try(run_extra_optimization(mod_int, nlminb_loops = 3, newton_loops = 0)) 
+							
+											s_eo <- unlist(sanity(mod_int_eo))
+											s_eo
+		
+											ind_eo <- which(s_eo == FALSE) %>% as.numeric()
+												
+ 													 if (any(ind_eo %!in% not_probs)) { 
+											
+															print('boo')
+ 													 	
+ 													 } else {
+ 													 	
+ 													 		write_rds(mod_int_eo, 
+ 													 							file = paste0(here(), 
+ 													 							file_path_all, y, "_int_mod_yr_RE_", sp, ".rds"))
+		 						
+ 												   }
 							
 								# if model with extra optimization (eo) looks all good, save model
 										} else if (sanity(mod_int_eo)[[9]] == "TRUE") {
@@ -272,12 +289,55 @@
   # separate models by species ####
   
 	# pollock #
+  
 	pol_mod_list <- mod_list[grep("pol", names(mod_list))]
 	
 	# pcod #
 	pcod_mod_list <- mod_list[grep("pcod", names(mod_list))]
 		
 	# yfin #
-	yfin_mod_list <- mod_list[grep("yfin", names(mod_list))]
+	yfin_mod_list <- mod_list[grep("yf", names(mod_list))]
+	
 	
 	#### compare models ####
+	
+	# pollock 
+  lapply(pol_mod_list, AIC)
+	# age0
+		# temp: int model did not run
+		# oxy: int model better
+	# presurvey
+		# temp: int model better
+		# oxy: int model did not run
+	# yrprior
+		# temp: int model better
+		# oxy: int model did not run
+	# also - 
+	
+	# pcod
+	lapply(pcod_mod_list, AIC)
+	# age0
+		# temp: int model did not run
+		# oxy: int model did not run
+	# presurvey
+		# temp: int model did not run
+		# oxy: int model did not run
+	# yrprior
+		# temp: int model better
+		# oxy: int model did not run
+	 
+	# yfin
+	lapply(yfin_mod_list, AIC)
+	# age0
+		# temp: int model did not run
+		# oxy: no int model better
+	# presurvey
+		# temp: int model did not run
+		# oxy: int model did not run
+	# yrprior
+		# temp: int model did not run
+		# oxy: int model better
+	
+	############## SOLVE THIS
+	 # running extra optimization loops post-hoc and then running sanity() in the new object from
+	 # run_extra_optimization() seems to give the sanity checks twice? My indexing isn't working....
