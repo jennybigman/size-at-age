@@ -29,29 +29,20 @@
   		df_list
   	}
   
-  # change names of list
-  list_names_fun <- function(x){
-  	name <- paste0("df_", x)
-  	name
-  }
-  
-  list_names <- sapply(c("pcod", "pollock", "yfsole"), list_names_fun)
-  
-  names(df_list) <- list_names
+  # wrangle
+	wrangling_func <- function(x){
  
- # wrangle
- wrangling_func <- function(x){
-		
- 		#pull out relevant dfs from list and join
 		spec_dat <- x$specimen
+		
   	haul_dat <- x$haul
+  	
+		specimen_dat <- full_join(spec_dat, haul_dat,
+															by = "HAULJOIN")
   
-		specimen_dat <- full_join(spec_dat, haul_dat, 
-																 by = "HAULJOIN")
 		# change col names to lowercase
 		names(specimen_dat) <- tolower(names(specimen_dat))
 	
-		# drop unneeded cols
+		#drop unneeded cols
 		names_keep <- c("length", "sex", "weight", "age", "start_time", 
 										"start_latitude", "start_longitude", "stationid",
 										"bottom_depth", "surface_temperature", "haul.x")
@@ -59,8 +50,6 @@
 		specimen_dat <- specimen_dat %>%
 			select(all_of(names_keep))
 		
-		specimen_dat$species <- 
-									
 		# convert dates
 		specimen_dat <- specimen_dat %>%
 			mutate(date = as_date(start_time),
@@ -69,26 +58,30 @@
 						 jday = yday(date),
 						 cohort = year - age)
 		
-	# turn cohort and age into factors for the model and log variables
-	specimen_dat <- specimen_dat %>%
-		filter(weight > 0) %>%
-		rename(latitude = start_latitude,
-					 longitude = start_longitude)
+		# turn cohort and age into factors for the model and log variables
+		specimen_dat <- specimen_dat %>%
+			filter(weight > 0) %>%
+			rename(latitude = start_latitude,
+						 longitude = start_longitude)
+	
+		# combine species info with df
+		species_dat <- x$species %>%
+  			select(SPECIES_CODE, SPECIES_NAME, COMMON_NAME) 
+		
+		species_dat <- species_dat %>% slice(rep(row_number(), nrow(specimen_dat)))
+	
+		names(species_dat) <- tolower(names(species_dat))
+	
+		specimen_dat <- bind_cols(specimen_dat, species_dat)
 	
  }
  
  df_list_wrangled <- lapply(df_list, wrangling_func) 
  
+ 	
  # add species as column, bind rows, and save file
- 	df_list_wrangled_names <- dplyr::bind_rows(df_list_wrangled, .id = "species")
+ 	df_list_wrangled_names <- dplyr::bind_rows(df_list_wrangled)
  	
 	write.csv(df_list_wrangled_names, file = here("./data/df_list_wrangled_names.csv"))
 	
 	
-	#### does pcod dat have NAs
-	pcod_dat_test <- df_list_wrangled_names %>% filter(species == "df_pcod")
-	
-	pcod_dat_test_sum <- pcod_dat_test %>%
-		mutate(fage = as.factor(age)) %>%
-		group_by(fage) %>%
-		summarise(count = n())
