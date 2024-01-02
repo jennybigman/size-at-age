@@ -1,8 +1,6 @@
-	# libraries
+# load each time
 
-	# install sdmTMB version with dispersion formula
-	#devtools::install_github("https://github.com/pbs-assess/sdmTMB",
-  #                       ref = "dispformula2")
+	# libraries
 
 	library(here)
 	library(tidyverse)
@@ -42,10 +40,28 @@
 		beepr::beep(x)
 	}
 	
+	# theme function
+	black_facet_theme <- function(x = 12, y = 14){
+			theme_bw() +
+ 			theme(
+ 				legend.position = "none", 
+ 				strip.text = element_text(size = 14, face = "bold", color = "white"),
+ 				strip.background = element_blank(),
+ 				panel.grid.major = element_blank(),
+  			panel.grid.minor = element_blank(),
+  			panel.border = element_rect(fill = NA, color = "grey50"),
+ 				axis.text=element_text(size = x, colour = "white"),
+  			axis.title= element_text(size = y, color = "white"),
+  			axis.line = element_line(color = "white"),
+  			axis.ticks = element_line(colour = "white"),
+ 				panel.background = element_rect(fill = "black"),
+				panel.grid = element_blank(),
+  			plot.background = element_rect(fill = "black", color = "black"))
+	}
 	#### read in specimen age & weight data ####
 	
 	specimen_dat <- read.csv(file = here("./data/df_list_wrangled_names.csv"))
-
+	
 	# age and cohort as factors and log weight
 	specimen_dat <- specimen_dat %>%
 		mutate(age_f = as.factor(age),
@@ -54,11 +70,11 @@
 		
 	# how many NAs per species do I have
 	spec_dat_0 <- specimen_dat %>%
-		dplyr::select(species, age) %>%
-		group_by(species) %>%
+		dplyr::select(species_name, age) %>%
+		group_by(species_name) %>%
 		summarise(NAs = sum(is.na(age))) 
 	
-	# have to remove some NAs from pcod df
+	# have to remove some NAs 
 	specimen_dat <- specimen_dat %>% 
 		drop_na(c(age, latitude, longitude, 
 							date, month, year, jday, cohort))
@@ -66,6 +82,7 @@
 	# change haul col name
 	specimen_dat$haul <- specimen_dat$haul.x
 
+	
 	## code random effect haul and year ##
 	
 	year_sort <- sort(unique(specimen_dat$year))
@@ -87,7 +104,7 @@
 	specimen_dat_list <- list()
  
 	specimen_dat_list <- specimen_dat %>%
-  	group_split(species) 
+  	group_split(species_name) 
 
 	# add columns
 	
@@ -105,11 +122,12 @@
 	
 	specimen_dat_list <- lapply(specimen_dat_list, weight_metrics_func)
 	
+	
 	#### ROMS output ####
 
 	# read in CMIP6 ROMS output
-  load("../../ACLIM2/Data/out/Mar 2023/K20P19_CMIP6-001/allEBS_means/ACLIM_weekly_hind_mn.Rdata")
-  load("../../ACLIM2/Data/out/Mar 2023/K20P19_CMIP6-001/allEBS_means/ACLIM_weekly_fut_mn.Rdata")
+  load("../../ACLIM2/Data/out/Mar 2023/K20P19_CMIP6/allEBS_means/ACLIM_weekly_hind_mn.Rdata")
+  load("../../ACLIM2/Data/out/Mar 2023/K20P19_CMIP6/allEBS_means/ACLIM_weekly_fut_mn.Rdata")
 
   # for PC
   #load("/data/ACLIM_weekly_hind_mn.Rdata")
@@ -143,7 +161,18 @@
   	rename(presurvey_btemp = "temp_bottom5m",
   				 presurvey_boxy = "oxygen_bottom5m")
   	
-  					
+  # plot
+  #presurvey_long <- presurvey_hind_var_short %>%
+  #	pivot_longer(
+  #		cols = starts_with("presurvey"),
+  #		names_to = "var",
+  #		values_to = "val")
+  #
+	#ggplot(data = presurvey_long) +
+	#	geom_line(aes(x = year, y = val)) +
+	#	facet_wrap( ~ var, scales = "free")
+	
+ 
   # add to dataframe list
 	dat_join_func <- function(x){
  
@@ -179,7 +208,18 @@
   	spread(yr_prior, key = var, value = mean_yr) %>%
 		rename(yrprior_btemp = "temp_bottom5m",
   				 yrprior_boxy = "oxygen_bottom5m")
-  	  
+  
+  # plot
+  #yrprior_long <- yr_prior_short %>%
+  #	pivot_longer(
+  #		cols = starts_with("yrprior"),
+  #		names_to = "var",
+  #		values_to = "val")
+  #
+	#ggplot(data = yrprior_long) +
+	#	geom_line(aes(x = year, y = val)) +
+	#	facet_wrap( ~ var, scales = "free")
+	
   
   dat_join_func <- function(x){
  
@@ -188,10 +228,11 @@
  
 	specimen_dat <- lapply(specimen_dat, dat_join_func)
 
-  #### 3. temp during first year of life ####
   
- age0_func <- function(x){
-		
+	#### 3. temp during first year of life ####
+  
+	age0_func <- function(x){
+	
 		df <- x %>%
 		mutate(year_age0 = cohort,
 					 year_age0_f = as.factor(year_age0))
@@ -209,12 +250,33 @@
 						 age0_boxy = yrprior_boxy) %>%
 			select(cohort, age0_btemp, age0_boxy) %>%
 			distinct(cohort, .keep_all = T)
-		
+	
 		dat <- left_join(df, yr_age0_vars)
 	
 	}	
 	
 	specimen_dat <- lapply(specimen_dat, age0_func)
+	
+	# plot
+	age0_dat_trim_func <- function(x){
+		
+		new_dat <- x %>% 
+			ungroup() %>%
+			select(species_name, year, age0_btemp, age0_boxy)
+	}
+
+	age0_dat <- lapply(specimen_dat, age0_dat_trim_func) %>% bind_rows()
+		
+  age0_long <- age0_dat %>%
+  	pivot_longer(
+  		cols = starts_with("age0"),
+  		names_to = "var",
+  		values_to = "val")
+  
+	ggplot(data = age0_long) +
+		geom_line(aes(x = year, y = val)) +
+		facet_grid(species_name ~ var, scales = "free")
+	
 	
 	# remove 2021 because no output in hindcast and will throw error in sdmTMB()
 	
@@ -243,25 +305,6 @@
 	
 	std_func <- function(df){
 		
-		  
-  # df <- df %>% 
-	#		mutate(presurvey_boxy_std = scale(presurvey_boxy),
-	#					 presurvey_btemp_std = scale(presurvey_btemp),
-	#					 yrprior_boxy_std = scale(yrprior_boxy),
-	#					 yrprior_btemp_std = scale(yrprior_btemp),
-	#				   age0_btemp_std = scale(age0_btemp),
-	#					 age0_boxy_std = scale(age0_boxy),
-	#					 jday_std = scale(jday)) 
-	#	
-	#	df$presurvey_boxy_std <- as.vector(df$presurvey_boxy_std)
-	#	df$presurvey_btemp_std <- as.vector(df$presurvey_btemp_std)
-	#	df$yrprior_boxy_std <- as.vector(df$yrprior_boxy_std)
-	#	df$yrprior_btemp_std <- as.vector(df$yrprior_btemp_std)
-	#	df$age0_btemp_std <- as.vector(df$age0_btemp_std)
-	#	df$age0_boxy_std <- as.vector(df$age0_boxy_std)
-	#	df$jday_std <- as.vector(df$presurvey_boxy_std)
-		
-		
  		df <- df %>%
 			mutate_at(vars(contains(c("btemp", "boxy"))), ~ scale(.) %>% as.vector)
 		
@@ -272,39 +315,48 @@
 
 	specimen_dat_std <- lapply(specimen_dat, std_func)
 	
-	# change species names
+	# change species names, add a col for year as a factor, order age classes
   
-  name_change_func <- function(df){
+  col_wrangle_func <- function(df){
   	
-  	df <- df %>% mutate(species = str_remove(species, "df_"))
+  	df <- df %>% mutate(year_f = as.factor(year))
+  	df$year_f <- droplevels(df$year_f)
+  	df
+  	
   }
  
-	specimen_dat_std <- lapply(specimen_dat_std, name_change_func)
+	specimen_dat_std <- lapply(specimen_dat_std, col_wrangle_func)
   
 	# separate for species-specific wrangling tasks
-	pcod_dat <- specimen_dat_std[[1]]
-	pollock_dat <- specimen_dat_std[[2]]
+
+	pollock_dat <- specimen_dat_std[[1]]
+	pcod_dat <- specimen_dat_std[[2]]
 	yfinsole_dat <- specimen_dat_std[[3]]
 
+	pol_sum <- pollock_dat %>% # ages 1-20 have >= 100
+		group_by(age) %>%
+		summarise(n = n())
+	
+	pcod_sum <- pcod_dat %>% # ages 1-10 have >= 100
+		group_by(age) %>%
+		summarise(n = n())
+	
+	yf_sum <- yfinsole_dat %>% # ages 3-28
+		group_by(age) %>%
+		summarise(n = n())
+	
 	# trim data set by largest age with >= 100 samples
-	pcod_dat <- pcod_dat  %>% filter(between(age, 1, 20))
+	pollock_dat <- pollock_dat  %>% filter(between(age, 1, 20))
+	
+	pcod_dat <- pcod_dat  %>% filter(between(age, 1, 10))
 
-	pollock_dat <- pollock_dat  %>% filter(between(age, 1, 10))
-
-	yfinsole_dat <- yfinsole_dat  %>% filter(between(age, 1, 20))
-
-	# pcod and yellowfin sole dat with only 10 age classes
-	#pcod_dat_trim <- pcod_dat  %>% filter(between(age, 1, 10))
-
-#	yfinsole_dat_trim <- yfinsole_dat  %>% filter(between(age, 1, 10))
+	yfinsole_dat <- yfinsole_dat  %>% filter(between(age, 3, 28))
 
 	# drop levels
 	pcod_dat$age_f <- droplevels(pcod_dat$age_f)
 	pollock_dat$age_f <- droplevels(pollock_dat$age_f)
 	yfinsole_dat$age_f <- droplevels(yfinsole_dat$age_f)
-	
-	# dataset for pcod has too few samples in age 1 and 2 so remove
-  drop_age <- c(1, 2)
-  pcod_dat_trim <- pcod_dat %>% filter(age %!in% drop_age)
-  pcod_dat_trim$age_f <- droplevels(pcod_dat_trim$age_f)
 
+	
+	
+	
