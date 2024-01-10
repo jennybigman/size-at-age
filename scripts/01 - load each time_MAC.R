@@ -24,6 +24,7 @@
 	library(tidymv)
 	library(ggsidekick)
 	library(see)
+	library(rnaturalearth)
 	
 	`%!in%` = Negate(`%in%`)
 
@@ -84,7 +85,6 @@
 
 	
 	## code random effect haul and year ##
-	
 	year_sort <- sort(unique(specimen_dat$year))
 	ID <- letters[1:length(year_sort)]
 	
@@ -128,7 +128,13 @@
 	# read in CMIP6 ROMS output
   load("../../ACLIM2/Data/out/Mar 2023/K20P19_CMIP6/allEBS_means/ACLIM_weekly_hind_mn.Rdata")
   load("../../ACLIM2/Data/out/Mar 2023/K20P19_CMIP6/allEBS_means/ACLIM_weekly_fut_mn.Rdata")
+  
+  # for plotting, need level 2 ROMS hindcast and projs
+  load("../../ACLIM2/Data/out/Mar 2023/K20P19_CMIP6/allEBS_means/ACLIM_surveyrep_hind_mn.Rdata")
+  load("../../ACLIM2/Data/out/Mar 2023/K20P19_CMIP6/allEBS_means/ACLIM_surveyrep_fut_mn.Rdata")
 
+ # ROMS_hind <- read_csv(file = here("./data/hindcast_temp_K20P19.csv"))
+  
   # for PC
   #load("/data/ACLIM_weekly_hind_mn.Rdata")
   #load("/data/ACLIM_weekly_fut_mn.Rdata")
@@ -229,53 +235,53 @@
 	specimen_dat <- lapply(specimen_dat, dat_join_func)
 
   
-	#### 3. temp during first year of life ####
-  
-	age0_func <- function(x){
-	
-		df <- x %>%
-		mutate(year_age0 = cohort,
-					 year_age0_f = as.factor(year_age0))
+#	#### 3. temp during first year of life ####
+ # 
+#	age0_func <- function(x){
+#	
+#		df <- x %>%
+#		mutate(year_age0 = cohort,
+#					 year_age0_f = as.factor(year_age0))
+#		
+#		yr_age0_dat <- df %>%
+#			ungroup() %>%
+#			dplyr::select(year_age0_f, year_age0) %>%
+#			rename(year = year_age0) %>%
+#			distinct()
+#		
+#		yr_age0_vars <- left_join(yr_age0_dat, yr_prior_short) %>%
+#			ungroup() %>%
+#			mutate(cohort = year) %>%
+#			rename(age0_btemp = yrprior_btemp,
+#						 age0_boxy = yrprior_boxy) %>%
+#			select(cohort, age0_btemp, age0_boxy) %>%
+#			distinct(cohort, .keep_all = T)
+#	
+#		dat <- left_join(df, yr_age0_vars)
+#	
+#	}	
+#	
+#	specimen_dat <- lapply(specimen_dat, age0_func)
+#	
+#	# plot
+#	age0_dat_trim_func <- function(x){
+#		
+#		new_dat <- x %>% 
+#			ungroup() %>%
+#			select(species_name, year, age0_btemp, age0_boxy)
+#	}
+#
+#	age0_dat <- lapply(specimen_dat, age0_dat_trim_func) %>% bind_rows()
 		
-		yr_age0_dat <- df %>%
-			ungroup() %>%
-			dplyr::select(year_age0_f, year_age0) %>%
-			rename(year = year_age0) %>%
-			distinct()
-		
-		yr_age0_vars <- left_join(yr_age0_dat, yr_prior_short) %>%
-			ungroup() %>%
-			mutate(cohort = year) %>%
-			rename(age0_btemp = yrprior_btemp,
-						 age0_boxy = yrprior_boxy) %>%
-			select(cohort, age0_btemp, age0_boxy) %>%
-			distinct(cohort, .keep_all = T)
-	
-		dat <- left_join(df, yr_age0_vars)
-	
-	}	
-	
-	specimen_dat <- lapply(specimen_dat, age0_func)
-	
-	# plot
-	age0_dat_trim_func <- function(x){
-		
-		new_dat <- x %>% 
-			ungroup() %>%
-			select(species_name, year, age0_btemp, age0_boxy)
-	}
-
-	age0_dat <- lapply(specimen_dat, age0_dat_trim_func) %>% bind_rows()
-		
-  age0_long <- age0_dat %>%
-  	pivot_longer(
-  		cols = starts_with("age0"),
-  		names_to = "var",
-  		values_to = "val")
-  
-	ggplot(data = age0_long) +
-		geom_line(aes(x = year, y = val)) +
-		facet_grid(species_name ~ var, scales = "free")
+ # age0_long <- age0_dat %>%
+ # 	pivot_longer(
+ # 		cols = starts_with("age0"),
+ # 		names_to = "var",
+ # 		values_to = "val")
+ # 
+#	ggplot(data = age0_long) +
+#		geom_line(aes(x = year, y = val)) +
+#		facet_grid(species_name ~ var, scales = "free")
 	
 	
 	# remove 2021 because no output in hindcast and will throw error in sdmTMB()
@@ -357,6 +363,33 @@
 	pollock_dat$age_f <- droplevels(pollock_dat$age_f)
 	yfinsole_dat$age_f <- droplevels(yfinsole_dat$age_f)
 
+	dat_list <- list(pollock_dat, pcod_dat, yfinsole_dat)
 	
+	# land polygons for plotting 
+	world <- ne_countries(scale = "medium",
+                      returnclass = "sf") 
+
+	US_map <- world %>%
+  	filter(name %in% c("United States"))
+
+	# Crop the polygon for plotting and efficiency:
+	# st_bbox(map_data) # find the rough coordinates
+	AK_coast <- suppressWarnings(suppressMessages(
+  	st_crop(US_map,
+    c(xmin = -179, ymin = 54, xmax = -155, ymax = 65))))
+
+	utm_zone <- 4326
+	AK_coast_proj <- sf::st_transform(AK_coast, crs = utm_zone)
 	
+	# put all species data into one df for modeling
+	dat_all <- dat_list %>% bind_rows()
+	
+	# change species name
+	dat_all <- dat_all %>%
+		mutate(
+			short_name = case_when(
+				common_name == "walleye pollock" ~ "pollock",
+				common_name == "Pacific cod" ~ "pcod",
+				common_name == "yellowfin sole" ~ "yfin")
+			)
 	
