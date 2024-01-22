@@ -1,9 +1,8 @@
 #### mapping haul locations ####
 	
-	all_sp_dat <- bind_rows(spec_temp_dat)
-	
-	all_sp_dat_loc <- all_sp_dat %>%
-		distinct(latitude, longitude, .keep_all = TRUE) %>%
+# map by lat/long
+	all_sp_dat_loc <- df_list_wrangled_names %>%
+		#distinct(latitude, longitude, .keep_all = TRUE) %>%
 		na.omit() %>%
 		mutate(long_not_360 = case_when(
 					 longitude >= 180 ~ longitude - 360,
@@ -22,8 +21,9 @@
 	breaks_y <- c(55, 60)
 	limits_y <- c(470000, 1900000)
 
-	haul_loc_map <- ggplot() +
-		geom_sf(data = all_sp_dat_loc, aes(color = age_f))  +
+	haul_loc_map <- 
+		ggplot() +
+		geom_sf(data = all_sp_dat_loc, aes(color = age))  +
 		geom_sf(data = world_map_data, fill = "grey", lwd = 0) +
 		coord_sf(crs = 3338) +
  		scale_x_continuous(
@@ -46,3 +46,27 @@
 	ggsave(haul_loc_map,
 				 file = here("./output/plots/map_haul_locations.png"))
 
+# map by station id
+	# plot locations of hauls
+	stations <- df_list_wrangled_names %>%
+		distinct(stationid, .keep_all =  TRUE)
+	
+	just_stations <- sort(unique(stations$stationid))
+	
+	haul_loc_map <- 
+		ggplot(data = stations, 
+					 aes(x = longitude, y = latitude,
+					 		label = stationid)) +
+		geom_text() +
+		theme_sleek()
+	
+	long_stations <- stations %>%
+		filter(str_length(stationid) > 4)
+	
+	haul_loc_map <- 
+		ggplot(data = long_stations, 
+					 aes(x = longitude, y = latitude,
+					 		label = stationid)) +
+		geom_text() +
+		theme_sleek()
+	
