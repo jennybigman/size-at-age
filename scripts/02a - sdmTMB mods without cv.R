@@ -1,173 +1,211 @@
-# sdmTMB function - no CV for now
-
-	dat_list <- list(pollock_dat, pcod_dat_trim, yfinsole_dat)
+# sdmTMB function - with CV, knots specified, 
 	
-	dat_all <- dat_list %>% bind_rows()
-	
-	# remove any rows with no age0 environmental data (the year in which some individuals were age 0 was prior to 1970, first year of hindcast)
-	dat_all <- dat_all %>%
-		drop_na(age0_boxy)
 
+	# file path to save models
+	file_path_all <- "/output/model output/sdmTMB output/Jan 2024/roms_survey_rep/"
+	
 	#### fit models without interaction ####
 	
-	# function to fit multiple models with no spatiotemporal RE but year RE
-	
-	sdmTMB_yr_RE_func <- function(sp, y){
+	sdmTMB_no_int_func <- function(sp, y){
 		
 		# wrangling and making a mesh 
 		
 					# filter df by species
-					new_dat <- dat_all %>% filter(species == sp)
+					new_dat <- dat_all %>% filter(short_name == sp)
   			
-					# order age class
-  				levels_to_ord <- sort(unique(new_dat$age_f))
-  				new_dat$age_f_ord <- ordered(new_dat$age_f, levels = c(levels_to_ord))	
+  				# drop unused factor levels of year (error when do this outside function)
+  				new_dat$year_f <- droplevels(new_dat$year_f)
   				
-  				# make year a factor and drop unused levels
-					new_dat$year_f <- as.factor(new_dat$year)
-					new_dat$year_f <- droplevels(new_dat$year_f)
-			
 					# make mesh
-					mesh <- make_mesh(new_dat, xy_cols = c("X", "Y"), n_knots = 400, type = "kmeans")
+					mesh <- make_mesh(new_dat, xy_cols = c("X", "Y"), cutoff = 20)
 				
-					# set up prior
-					pc <- pc_matern(range_gt = 300, sigma_lt = 0.4)
+					# for mod name
+					mod_name <- "_no_int_mod_"
 					
-					# set up which sanity checks are not really issues (but will check residual plots)
-					not_probs <- c(5, 6) # gradients_ok & se_magnitude_ok
-	
 		# run models	
 		
 					print(paste('running no int model for', sp, "with", y))
 		
 					# set up formulas
-					form1 <- paste0("log_wt_std ~ 0 + age_f_ord + s(" , y, ") + (1|year_f)")
-			
+					form_no_int <- paste0("log_wt ~ 0 + age_f + s(" , y, ", k = 3)")
+
  					# model without interaction 
-					mod <- 
+					mod_no_int <- 
 						try(
 							sdmTMB(
-								formula = as.formula(form1),
+								formula = as.formula(form_no_int),
 								data = new_dat,
 								mesh = mesh,
 								spatial = "on",
-								spatiotemporal = "off",
-								control = sdmTMBcontrol(nlminb_loops = 3)))
-
-					# run and index sanity checks for later optimization
-					s <- unlist(sanity(mod))
-					s
-		
-					ind <- which(s == FALSE) %>% as.numeric()
+								spatiotemporal = "IID",
+							  time = "year",
+								extra_time = 2020:2099))
+					
+					s <- sanity(mod_no_int, gradient_thresh = 0.05)
 	
-				# deal with warnings and issues
-						if (class(mod) == "try-error"){
+		# deal with warnings and issues
+					
+					# if error, tell me
+						if (class(mod_no_int) == "try-error"){
 		 						print(paste("error!"))
-		 
-						} else if (sanity(mod)[[9]] == "TRUE") { # if all sanity checks are good, save model
+		 			
+					# if no error and sanity() checks all good, save model and tell me
+
+						} else if (s$all_ok == "TRUE")  { # if all sanity checks are good, save model
 		 	 	
-		 						write_rds(mod, 
-									file = paste0(here(), "/output/model output/sdmTMB output/with year as RE/", # change to file path on local machine
-														 y, "_no_int_mod_yr_RE_", sp, ".rds"))
+		 						write_rds(mod_no_int, 
+									file = paste0(here(), file_path_all, y, mod_name, sp, ".rds"))
 		 						
 		 						print(paste("no int model for", sp, "with", y, "complete"))
-				
-						} else if (any(ind %!in% not_probs)) { # if sanity checks are not good, may be able to ignore some but if not run extra optimization 
-					
-		 						print('running extra optimization')
-								
-								mod_eo <- try(run_extra_optimization(mod)) 
-		
-						if (class(mod_eo) == "try-error"){
-		 				
-    					print(paste("error!"))
-					
-						} else if (sanity(mod_eo)[[9]] == "TRUE") {
-		 				 	
-		 					write_rds(mod_eo, 
-								file = paste0(here(), "/output/model output/sdmTMB output/with year as RE/", # change to file path on local machine
-										 y, "_no_int_mod_yr_RE_", sp, ".rds"))
-		 		
-		 					print(paste("no int model for", sp, "with", y, "complete"))
+		 	
+					  } else if 
+					  			 (s$hessian_ok ==      "TRUE" &
+						  			s$eigen_values_ok == "TRUE" &
+					  				s$nlminb_ok ==       "TRUE" &
+					  				s$range_ok ==        "TRUE" &
+					  				s$se_na_ok ==        "TRUE" &
+					  				s$sigmas_ok ==       "TRUE") {
+	
+							write_rds(mod_no_int, 
+										file = paste0(here(), file_path_all, y, mod_name, sp, ".rds"))
+									
+							print(paste("no int model for", sp, "with", y, "complete"))
 
-					  } else {
-			
-    					print('boo')
-					  } 
-				}
-		}
+		 				
+		 				} else if 
+							(s$hessian_ok      != "TRUE" |
+						 	 s$eigen_values_ok != "TRUE" |
+					  	 s$nlminb_ok       != "TRUE" |
+					  	 s$range_ok        != "TRUE" |
+					  	 s$se_na_ok        != "TRUE" |
+					  	 s$sigmas_ok       != "TRUE" ) {
+	
+									print('running extra optimization')
+								
+									mod_eo <- try(run_extra_optimization(mod_no_int, nlminb_loops = 3, newton_loops = 1)) 
+							
+											# if model with extra optimization (eo) threw an error, rerun with no newton loops
+ 											if (class(mod_eo) == "try-error"){
+		 						
+											print(paste("newton loops threw error, running with no newtown loops"))
+
+											mod_eo <- try(run_extra_optimization(mod_no_int, nlminb_loops = 3, newton_loops = 0)) 
+ 											
+											} else if (s$all_ok == "TRUE")  { # if all sanity checks are good, save model
+		 	 	
+													print(paste("no int model for", sp, "with", y, "complete"))
+		 											
+													write_rds(mod_eo, 
+														file = paste0(here(), file_path_all, y, mod_name, sp, ".rds"))
+					
+											} else if
+												 (s$hessian_ok ==      "TRUE" &
+						  						s$eigen_values_ok == "TRUE" &
+					  							s$nlminb_ok ==       "TRUE" &
+					  							s$range_ok ==        "TRUE" &
+					  							s$se_na_ok ==        "TRUE" &
+					  							s$sigmas_ok ==       "TRUE") {
+	
+											print(paste("no int model for", sp, "with", y, "complete"))
+
+											write_rds(mod_eo, 
+														file = paste0(here(), file_path_all, y, mod_name, sp, ".rds"))
+													
+
+											 } else {
+												 	print('boo - extra optimization did not solve the issue(s)')
+											 }
+		 								
+							# if original model object before optimization (mod_int) looks good aside from a few non-issues, save model			
+									 	
+					  	 } else if 
+					  			 (s$hessian_ok ==      "TRUE" &
+						  			s$eigen_values_ok == "TRUE" &
+					  				s$nlminb_ok ==       "TRUE" &
+					  				s$range_ok ==        "TRUE" &
+					  				s$se_na_ok ==        "TRUE" &
+					  				s$sigmas_ok ==       "TRUE") {
+	
+							write_rds(mod, 
+										file = paste0(here(), file_path_all, y, mod_name, sp, ".rds"))
+									
+									print(paste("no int model for", sp, "with", y, "complete"))
+
+		 									
+					 	 } else {
+					   	
+									print(paste("boo - no int model for", sp, "with", y, "has issues"))
+
+					  	 } 
+	}
 	
 	
 	# run function
+
+	sp <- unique(dat_all$short_name)
 	
-	sp <- unique(dat_all$species)
+	#vars <- dat_all %>%
+	#	select(contains(c("btemp", "boxy"))) %>%
+	#	names() 
 	
+	# just temp
 	vars <- dat_all %>%
-		select(contains(c("btemp", "boxy"))) %>%
-		names()
-	
+		select(contains("rsr")) %>%
+		names() 
+
+
 	df_func <- expand_grid(
 		sp = sp,
 		y = vars
 	)
 
-	map2(df_func$sp, df_func$y, sdmTMB_yr_RE_func)
+	map2(df_func$sp, df_func$y, sdmTMB_no_int_func)
+
 	
+	#### fit models with an interaction ####
 	
-	#### fit models with interactions ####
-	sdmTMB_yr_RE_int_func <- function(sp, y){
+	sdmTMB_int_func <- function(sp, y){
 		
 		# wrangling and making a mesh 
 		
 					# filter df by species
-					new_dat <- dat_all %>% filter(species == sp)
+					new_dat <- dat_all %>% filter(short_name == sp)
   			
-					# order age class
-  				levels_to_ord <- sort(unique(new_dat$age_f))
-  				new_dat$age_f_ord <- ordered(new_dat$age_f, levels = c(levels_to_ord))	
+  				# drop unused factor levels of year (error when do this outside function)
+  				new_dat$year_f <- droplevels(new_dat$year_f)
   				
-  				# make year a factor and drop unused levels
-					new_dat$year_f <- as.factor(new_dat$year)
-					new_dat$year_f <- droplevels(new_dat$year_f)
-			
 					# make mesh
-					mesh <- make_mesh(new_dat, xy_cols = c("X", "Y"), n_knots = 400, type = "kmeans")
+					mesh <- make_mesh(new_dat, xy_cols = c("X", "Y"), cutoff = 20) 
 				
-					# set up prior
-					pc <- pc_matern(range_gt = 300, sigma_lt = 0.4)
+					# for mod name
+					mod_name <- "_int_mod_"
 					
-					# set up which sanity checks are not really issues (but will check residual plots)
-					not_probs <- c(5, 6) # gradients_ok & se_magnitude_ok
-					
-					# file path to save models with year as random effect
-					file_path_all <- "/output/model output/sdmTMB output/with year as RE/"
-	
 		# run models	
 		
-					print(paste('running  int model for', sp, "with", y))
+					print(paste('running int model for', sp, "with", y))
 		
 					# set up formulas
-					form2 <- paste0("log_wt_std ~ 0 + age_f_ord + s(" , y, ", by = age_f_ord) + (1|year_f)")
+					form_int <- paste0("log_wt ~ 0 + age_f + s(" , y, ", by = age_f, k = 3)")
 
  					# model without interaction 
 					mod_int <- 
 						try(
 							sdmTMB(
-								formula = as.formula(form2),
+								formula = as.formula(form_int),
 								data = new_dat,
 								mesh = mesh,
-								priors = sdmTMBpriors(matern_s = pc),
 								spatial = "on",
-								spatiotemporal = "off",
-								control = sdmTMBcontrol(nlminb_loops = 3)))
-
-					# run and index sanity checks for later optimization
-					s_int <- unlist(sanity(mod_int))
-					s_int
-		
-					ind_int <- which(s_int == FALSE) %>% as.numeric()
+								spatiotemporal = "IID",
+							  time = "year",
+								extra_time = 2020:2099,
+								priors = sdmTMBpriors(
+									matern_st = pc_matern(range_gt = 100, sigma_lt = 2),
+									matern_s  = pc_matern(range_gt = 100, sigma_lt = 2))))
 	
-				# deal with warnings and issues
+					
+					s <- sanity(mod_int, gradient_thresh = 0.05)
+	
+		# deal with warnings and issues
 					
 					# if error, tell me
 						if (class(mod_int) == "try-error"){
@@ -175,169 +213,166 @@
 		 			
 					# if no error and sanity() checks all good, save model and tell me
 
-						} else if (sanity(mod_int)[[9]] == "TRUE") { # if all sanity checks are good, save model
+						} else if (s$all_ok == "TRUE")  { # if all sanity checks are good, save model
 		 	 	
 		 						write_rds(mod_int, 
-									file = paste0(here(), file_path_all, y, "_int_mod_yr_RE_", sp, ".rds"))
+									file = paste0(here(), file_path_all, y, mod_name, sp, ".rds"))
 		 						
 		 						print(paste("int model for", sp, "with", y, "complete"))
-
-		 		 # if no error and sanity() does not look good aside from a few non-issues (see above), rerun model with extra optimization
-		 						
-						} else if (any(ind_int %!in% not_probs)) { 
-					
-		 						print('running extra optimization')
-								
-								mod_int_eo <- try(run_extra_optimization(mod_int, nlminb_loops = 3, newton_loops = 1)) 
-								
-								s_eo <- unlist(sanity(mod_int_eo))
-								s_eo
-		
-								ind_eo <- which(s_eo == FALSE) %>% as.numeric()
-								
+		 	
+					  } else if 
+					  			 (s$hessian_ok ==      "TRUE" &
+						  			s$eigen_values_ok == "TRUE" &
+					  				s$nlminb_ok ==       "TRUE" &
+					  				s$range_ok ==        "TRUE" &
+					  				s$se_na_ok ==        "TRUE" &
+					  				s$sigmas_ok ==       "TRUE") {
 	
-								# if model with extra optimization (eo) threw an error, rerun with no newton loops
- 										if (class(mod_int_eo) == "try-error"){
+							write_rds(mod_int, 
+										file = paste0(here(), file_path_all, y, mod_name, sp, ".rds"))
+									
+							print(paste("int model for", sp, "with", y, "complete"))
+
+		 				
+		 				} else if 
+							(s$hessian_ok      != "TRUE" |
+						 	 s$eigen_values_ok != "TRUE" |
+					  	 s$nlminb_ok       != "TRUE" |
+					  	 s$range_ok        != "TRUE" |
+					  	 s$se_na_ok        != "TRUE" |
+					  	 s$sigmas_ok       != "TRUE" ) {
+	
+									print('running extra optimization')
+								
+									mod_int_eo <- try(run_extra_optimization(mod_int, nlminb_loops = 3, newton_loops = 1)) 
+							
+											# if model with extra optimization (eo) threw an error, rerun with no newton loops
+ 											if (class(mod_int_eo) == "try-error"){
 		 						
 											print(paste("newton loops threw error, running with no newtown loops"))
 
 											mod_int_eo <- try(run_extra_optimization(mod_int, nlminb_loops = 3, newton_loops = 0)) 
-							
-											s_eo <- unlist(sanity(mod_int_eo))
-											s_eo
-		
-											ind_eo <- which(s_eo == FALSE) %>% as.numeric()
-												
- 													 if (any(ind_eo %!in% not_probs)) { 
-											
-															print('boo')
- 													 	
- 													 } else {
- 													 	
- 													 		write_rds(mod_int_eo, 
- 													 							file = paste0(here(), 
- 													 							file_path_all, y, "_int_mod_yr_RE_", sp, ".rds"))
-		 						
- 												   }
-							
-								# if model with extra optimization (eo) looks all good, save model
-										} else if (sanity(mod_int_eo)[[9]] == "TRUE") {
-		 				 	
-		 									write_rds(mod_int_eo, 
-												file = paste0(here(), file_path_all, y, "_int_mod_yr_RE_", sp, ".rds"))
-		 						
-		 									print(paste("int model for", sp, "with", y, "complete"))
-		 									
-		 						# if model with extra optimization (eo) does not look all good aside from a few non-issues, tell me
-										} else if (any(ind_eo %!in% not_probs)) { 
-											
-											print('boo')
-											
-		 					 # if model with extra optimization (eo) looks all good aside from a few non-issues, save model
-										} else {
-								
-												write_rds(mod_int_eo, 
-													file = paste0(here(), file_path_all, y, "_int_mod_yr_RE_", sp, ".rds"))
-		 									
-										}
-								
-											
+ 											
+											} else if (s$all_ok == "TRUE")  { # if all sanity checks are good, save model
+		 	 	
+													print(paste("int model for", sp, "with", y, "complete"))
+		 											
+													write_rds(mod_int_eo, 
+														file = paste0(here(), file_path_all, y, mod_name, sp, ".rds"))
+					
+											} else if
+												 (s$hessian_ok ==      "TRUE" &
+						  						s$eigen_values_ok == "TRUE" &
+					  							s$nlminb_ok ==       "TRUE" &
+					  							s$range_ok ==        "TRUE" &
+					  							s$se_na_ok ==        "TRUE" &
+					  							s$sigmas_ok ==       "TRUE") {
+	
+											print(paste("int model for", sp, "with", y, "complete"))
+
+											write_rds(mod_int_eo, 
+														file = paste0(here(), file_path_all, y, mod_name, sp, ".rds"))
+													
+
+											 } else {
+												 	print('boo - extra optimization did not solve the issue(s)')
+											 }
+		 								
 							# if original model object before optimization (mod_int) looks good aside from a few non-issues, save model			
 									 	
-					  	 } else {
-							
-    								 		write_rds(mod_int_eo, 
-													file = paste0(here(), file_path_all, y, "_int_mod_yr_RE_", sp, ".rds"))
-		 													
-		 										print(paste("int model for", sp, "with", y, "complete"))
-		 										
-					  } 
+					  	 } else if 
+					  			 (s$hessian_ok ==      "TRUE" &
+						  			s$eigen_values_ok == "TRUE" &
+					  				s$nlminb_ok ==       "TRUE" &
+					  				s$range_ok ==        "TRUE" &
+					  				s$se_na_ok ==        "TRUE" &
+					  				s$sigmas_ok ==       "TRUE") {
+	
+							write_rds(mod_int, 
+										file = paste0(here(), file_path_all, y, mod_name, sp, ".rds"))
+									
+									print(paste("int model for", sp, "with", y, "complete"))
+
+		 									
+					 	 } else {
+					   	
+									print(paste("boo - int model for", sp, "with", y, "has issues"))
+
+					  	 } 
 	}
 	
-		
 	
 	# run function
+
+	sp <- unique(dat_all$short_name)
 	
-	sp <- unique(dat_all$species)
+#	vars <- dat_all %>%
+#		select(contains(c("btemp", "boxy"))) %>%
+#		names() 
 	
+	# just temp
 	vars <- dat_all %>%
-		select(contains(c("btemp", "boxy"))) %>%
-		names()
-	
+		select(contains("btemp")) %>%
+		names() 
+
+
+
 	df_func <- expand_grid(
 		sp = sp,
 		y = vars
 	)
 
-	map2(df_func$sp, df_func$y, sdmTMB_yr_RE_int_func)
+	map2(df_func$sp, df_func$y, sdmTMB_int_func)
 	
 	
-	#### read in models ####
-	
-	file_list <- list.files(path = paste0(here(), file_path_all))
 
-  prestring <- paste0(here(), file_path_all)
-  
-  mod_names_list <- list()
-  
-  for(i in file_list){
-  	mod_names_list[[i]] <- paste0(prestring, i) # I used a for loop!
-  }
-  
-  mod_list <- lapply(mod_names_list, readRDS)
-  
-  # separate models by species ####
-  
-	# pollock #
-  
-	pol_mod_list <- mod_list[grep("pol", names(mod_list))]
+	## presurvey temp and yfin - model didn't converge
+	#
+	#yfinsole_dat <- dat_all %>% 
+	#	filter(short_name == "yfin")
+	#
+	#yfinsole_dat$age_f <- droplevels(yfinsole_dat$age_f)
+	#
+	#mesh <- make_mesh(yfinsole_dat, xy_cols = c("X", "Y"), cutoff = 40)
+	#	
+	#		yr_btemp_rsr_int_mod_yfin <-
+	#			sdmTMB(
+	#				formula = log_wt ~ 0 + age_f + s(yr_btemp_rsr, k = 3),
+	#				data = yfinsole_dat,
+	#				mesh = mesh,
+	#				spatial = "on",
+	#				spatiotemporal = "iid",
+	#				time = "year",
+	#				priors = sdmTMBpriors(matern_st = pc_matern(range_gt = 200, sigma_lt = 2),
+	#													matern_s = pc_matern(range_gt = 200, sigma_lt = 2)))
+	#		
+#
+	#sanity(yr_btemp_rsr_int_mod_yfin)
+#
+	#write_rds(yr_btemp_rsr_int_mod_yfin, file = paste0(here(), file_path_all, "yr_btemp_rsr_int_mod_yfin.rds"))
+#
+	# with no interaction
 	
-	# pcod #
-	pcod_mod_list <- mod_list[grep("pcod", names(mod_list))]
 		
-	# yfin #
-	yfin_mod_list <- mod_list[grep("yf", names(mod_list))]
+	yfinsole_dat <- dat_all %>% 
+		filter(short_name == "yfin")
 	
+			mesh <- make_mesh(yfinsole_dat, xy_cols = c("X", "Y"), cutoff = 20)
+		
+			yr_btemp_rsr_no_int_mod_yfin <-
+				sdmTMB(
+					formula = log_wt ~ 0 + age_f + s(yr_btemp_rsr, k = 3),
+					data = yfinsole_dat,
+					mesh = mesh,
+					spatial = "on",
+					spatiotemporal = "iid",
+					time = "year",
+			priors = sdmTMBpriors(matern_st = pc_matern(range_gt = 220, sigma_lt = 2),
+														matern_s = pc_matern(range_gt = 220, sigma_lt = 2)),
+			control = sdmTMBcontrol(nlminb_loops = 3, newton_loops = 2))
+
+	sanity(presurvey_btemp_no_int_mod_yfin, gradient_thresh = 0.05)
+
+	write_rds(presurvey_btemp_int_mod_yfin, file = paste0(here(), file_path_all, "presurvey_btemp_int_mod_yfin.rds"))
+
 	
-	#### compare models ####
-	
-	# pollock 
-  lapply(pol_mod_list, AIC)
-	# age0
-		# temp: int model did not run
-		# oxy: int model better
-	# presurvey
-		# temp: int model better
-		# oxy: int model did not run
-	# yrprior
-		# temp: int model better
-		# oxy: int model did not run
-	# also - 
-	
-	# pcod
-	lapply(pcod_mod_list, AIC)
-	# age0
-		# temp: int model did not run
-		# oxy: int model did not run
-	# presurvey
-		# temp: int model did not run
-		# oxy: int model did not run
-	# yrprior
-		# temp: int model better
-		# oxy: int model did not run
-	 
-	# yfin
-	lapply(yfin_mod_list, AIC)
-	# age0
-		# temp: int model did not run
-		# oxy: no int model better
-	# presurvey
-		# temp: int model did not run
-		# oxy: int model did not run
-	# yrprior
-		# temp: int model did not run
-		# oxy: int model better
-	
-	############## SOLVE THIS
-	 # running extra optimization loops post-hoc and then running sanity() in the new object from
-	 # run_extra_optimization() seems to give the sanity checks twice? My indexing isn't working....
