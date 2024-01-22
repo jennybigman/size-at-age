@@ -5,12 +5,13 @@
 		mutate(value = presurvey_mean_val)
 	
 	yr_prior_vars <- yr_prior %>%
-		mutate(value = mean_yr)
+		mutate(value = mean_yr) %>%
+		rename()
 
 	# tidy dat of age 0 temp and oxy
 	trim_func <- function(x){
 	
-		df %>%
+		df <- x %>%
 		ungroup() %>%
 		select(cohort, year, age0_boxy, age0_btemp) %>%
 		distinct(cohort, .keep_all = TRUE)
@@ -29,6 +30,7 @@
                    names_to = "var",
                    values_to = "value")
 
+	
 	vars_yr <- 
 		ggplot() +
 		geom_line(data = presurvey_vars, 
@@ -37,9 +39,6 @@
 		geom_line(data = yr_prior_vars, 
 							aes(x = year, y = value),
 							color = "blue") +
-		geom_line(data = age0_dat_long,
-						 aes(x = year, y = value),
-							color = "black") +
 		facet_wrap( ~ var, scales = "free")
 	
  
@@ -59,11 +58,12 @@
                    names_to = "var",
                    values_to = "value")
 	
+	temp_dat <- dat_var %>% filter(str_detect(var, 'temp'))
 	
-	vars_id <- 
+	temp_plots <- 
 		ggplot() +
-		geom_line(data = dat_var, 
-							aes(x = log_wt, y = value)) +
+		geom_line(data = temp_dat, 
+							aes(x = year, y = value)) +
 		facet_grid(species ~ var, scales = "free")
 
 	plot_func <- function(x){
@@ -92,3 +92,103 @@
   file_paths <- sapply(names(plot_list), file_path_func)
 	
   mapply(ggsave_func, x = plot_list, y = file_paths)
+
+  #######################################################
+  
+  presurvey_vars <- presurvey_hind_var_short %>%
+  		pivot_longer(cols = contains(c("btemp", "boxy")),
+                   names_to = "var",
+                   values_to = "value")
+  
+  yrprior_vars <- yr_prior_short %>%
+  		pivot_longer(cols = contains(c("btemp", "boxy")),
+                   names_to = "var",
+                   values_to = "value")
+  
+  age0_vars <- age0_dat %>%
+  	#select(-cohort) %>%
+  		pivot_longer(cols = contains(c("btemp", "boxy")),
+                   names_to = "var",
+                   values_to = "value")
+  
+  all_vars <- bind_rows(presurvey_vars, yrprior_vars)
+
+  # plot
+  
+  ggplot() +
+		geom_line(data = all_vars %>% filter(str_detect(var, "temp")), 
+							aes(x = year, y = value)) +
+		facet_wrap( ~ var, scales = "free")
+
+  ggplot() +
+		geom_line(data = all_vars %>% filter(str_detect(var, "oxy")), 
+							aes(x = year, y = value)) +
+		facet_wrap( ~ var, scales = "free")
+  	  	
+  ggplot() +
+		geom_line(data = age0_dat_long %>% filter(str_detect(var, "temp")), 
+							aes(x = year, y = value, color = cohort)) +
+		facet_wrap( ~ var, scales = "free")
+  
+  
+  cohort1993 <- age0_dat_long %>% filter(cohort == 1999)
+
+  
+  # plot temp and oxygen from level 2 data
+  
+  # read in bottom temps
+  bot_temp_hind_dat <- fread(file = here("./data/hindcast_bot_temp_K20P19.csv"))
+
+  # trim to survey grid 
+  survey_grid <- pollock_dat %>%
+		select(stationid, latitude, longitude) %>%
+		group_by(stationid) %>%
+		summarise(latitude = mean(latitude),
+							longitude = mean(longitude))
+	
+	# find temp value closest to survey haul locations
+	roms_grid <- bot_temp_hind_dat %>%
+		distinct_at(vars(latitude, longitude)) %>%
+		mutate(longitude = case_when(
+					 longitude >= 180 ~ longitude - 360,
+				   longitude < 180 ~ longitude * -1))
+	
+	roms_grid$roms_ID <- 1:nrow(roms_grid)
+	
+	# match lat/longs of survey grid to nearest neighbor from ROMS grid	
+	
+	# use nn2() to calculate min distance to nearest ROMS lat/long
+	survey_grid[, c(4, 5)] <- as.data.frame(RANN::nn2(roms_grid[, c('latitude', 'longitude')],
+                                                  survey_grid[, c('latitude', 'longitude')],
+                                                  k = 1))
+	
+	# Match nearest lat/long from ROMS
+	survey_grid$roms_ID <- pull(roms_grid[c(survey_grid$nn.idx), 'roms_ID'])
+	
+	# any NAs in matching?
+	which(is.na(survey_grid$roms_ID), )
+	
+	# drop cols from nn2
+	survey_grid <- survey_grid %>%
+		select(-nn.idx, -nn.dists)
+
+	# remove unecessary cols and convert lat/long
+	bot_temp_hind_dat <- bot_temp_hind_dat %>%
+			select(-Xi, -Eta, -DateTime, -Time) %>%
+			mutate(longitude = case_when(
+					 longitude >= 180 ~ longitude - 360,
+				   longitude < 180 ~ longitude * -1))
+	
+	# add in col denoting grid ID based on lat/long
+	bot_temp_hind_dat <- left_join(bot_temp_hind_dat, roms_grid)
+	
+	# filter out grid cells/points that aren't in survey data
+	ID_keep <- sort(unique(survey_grid$roms_ID))
+
+	roms_bot_temps <- bot_temp_hind_dat %>%
+ 		filter(roms_ID %in% ID_keep)
+	
+	# summarise temps by month and year for each grid cell/point
+	roms_temp_sum <- roms_temps %>%
+		group_by(roms_ID, month, year) %>%
+		summarise(temp = mean(temp)) 
