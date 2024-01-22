@@ -119,7 +119,7 @@
   				file = here("./output/model output/sdmTMB output/presurvey_btemp_int_pcod.rds"))
 
   presurvey_btemp_int_pcod <- readRDS(
-  				file = here("./output/model output/sdmTMB output/presurvey_btemp_int_pcod.rds"))
+  				file = here("./output/model output/sdmTMB output/no year RE/presurvey_btemp_int_mod_pcod.rds"))
 
 
   #### yellowfin sole ####
