@@ -49,19 +49,16 @@
 	
 	}
 	
-	
 	sp_mod_lists <- list(pol_mod_list, pcod_mod_list, yfin_mod_list)
-	
-	vars <- dat_all %>%
-		select(contains(c("btemp", "boxy"))) %>%
-		names() 
+
+	vars <- c("presurvey_btemp", "yrprior_btemp")
 
 	df_func <- expand_grid(
 		x = sp_mod_lists,
 		y = vars
 	)
 
-	npe_AICs <- map2(df_func$x, df_func$y, AIC_func)
+	nspe_AICs <- map2(df_func$x, df_func$y, AIC_func)
 
 	# which temp and which oxygen metric? - yr prior temp & oxygen better than presurvey for all species
 	# oxygen or temp? temp better predictor of changes in size at age for all three species
@@ -114,16 +111,14 @@
 	
 	sp_mod_lists <- list(pol_mod_list, pcod_mod_list, yfin_mod_list)
 	
-	vars <- dat_all %>%
-		select(contains(c("btemp", "boxy"))) %>%
-		names() 
+	vars <- c("presurvey_btemp", "yrprior_btemp")
 
 	df_func <- expand_grid(
 		x = sp_mod_lists,
 		y = vars
 	)
 
-	AICs <- map2(df_func$x, df_func$y, AIC_func)
+	spe_AICs <- map2(df_func$x, df_func$y, AIC_func)
 
 	# which temp and which oxygen metric? - yr prior temp & oxygen better than presurvey for all species
 	# oxygen or temp? temp better predictor of changes in size at age for all three species
@@ -176,27 +171,51 @@
 	
 	sp_mod_lists <- list(pol_mod_list, pcod_mod_list, yfin_mod_list)
 	
-	vars <- dat_all %>%
-		select(contains(c("btemp", "boxy"))) %>%
-		names() 
+	vars <- "yr_btemp"
+
 
 	df_func <- expand_grid(
 		x = sp_mod_lists,
 		y = vars
 	)
 
-	npe_AICs <- map2(df_func$x, df_func$y, AIC_func)
+	rsr_AICs <- map2(df_func$x, df_func$y, AIC_func)
 
 # for spatially explicit models
- sp_exp_AICs <-	AICs %>% 
+ spe_AICs <-	spe_AICs %>% 
  	bind_cols() %>%
  	pivot_longer(cols = contains("temp"), names_to = 'model', values_to = "AIC_sp_exp") 
  
- sp_exp_AICs <- sp_exp_AICs[grepl("rds", sp_exp_AICs$model), ]
+ spe_AICs <- spe_AICs[grepl("rds", spe_AICs$model), ]
  
- non_sp_exp_AICs <-	npe_AICs %>% 
+ # non spatially explicit
+ nspe_AICs <-	nspe_AICs %>% 
  	bind_cols() %>%
  	pivot_longer(cols = contains("temp"), names_to = 'model', values_to = "AIC_nsp_exp")
 
- AIC_comp <- left_join(non_sp_exp_AICs, sp_exp_AICs)
+ nspe_AICs <- nspe_AICs[grepl("rds", nspe_AICs$model), ]
+
+ # roms survey replicated
+ rsr_AICs_bind <-	rsr_AICs %>% 
+ 	bind_cols() %>%
+ 	pivot_longer(cols = contains("temp"), names_to = 'model', values_to = "AIC_rsr")
+
+ rsr_AICs_bind <- rsr_AICs_bind[grepl("rds", rsr_AICs_bind$model), ]
+
+ rsr_AICs_yr <- rsr_AICs_bind
+ rsr_AICs_yr$model <- gsub("yr_btemp", "yrprior_btemp", rsr_AICs_yr$model)
+ rsr_AICs_yr$model <- gsub("_rsr", "", rsr_AICs_yr$model)
+
+ rsr_AICs_pre <- rsr_AICs_bind
+ rsr_AICs_pre$model <- gsub("yr_btemp", "presurvey_btemp", rsr_AICs_pre$model)
+ rsr_AICs_pre$model <- gsub("_rsr", "", rsr_AICs_pre$model)
+
+ 
+ rsr_AICs_mod <- bind_rows(rsr_AICs_yr, rsr_AICs_pre)
+
+ # change yr btemp to yr prior just for comparison purposes
+ 
+ AIC_comp <- left_join(nspe_AICs, spe_AICs)
+
+ AIC_comp_all <- left_join(AIC_comp, rsr_AICs_mod) 
  
