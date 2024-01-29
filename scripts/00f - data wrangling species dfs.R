@@ -291,51 +291,50 @@
  
 	specimen_dat_list <- lapply(specimen_dat_list, col_wrangle_func)
   
+	# trim data set by largest age with >= 100 samples
+	drop_ages_func <- function(df){	
+	
+			
+		df <- df %>%
+			group_by(age_f) %>%
+			filter(n() > 100) %>%
+			drop_na(age_f)
+		
+		df <- df %>%
+			group_by(species) %>%
+			droplevels(age_f)
+
+		
+	}
+
+	specimen_dat_list <- lapply(specimen_dat_list, drop_ages_func)
+
 	# separate for species-specific wrangling tasks
 
-	pollock_dat <- specimen_dat_list[[1]] #%>% na.omit()
-	# any NAs
-	pol_NAs <- pollock_dat[!complete.cases(pollock_dat), ] 
+	#pollock_dat <- specimen_dat_list[[1]]
+	## any NAs
+	#pol_NAs <- pollock_dat[!complete.cases(pollock_dat), ] 
+#
+	#pcod_dat <- specimen_dat_list[[2]] 
+	## any NAs
+	#pcod_NAs <- pcod_dat[!complete.cases(pcod_dat), ] 
+#
+	#yfinsole_dat <- specimen_dat_list[[3]]
+	## any NAs
+	#yfs_NAs <- yfinsole_dat[!complete.cases(yfinsole_dat), ] 
 
-	pcod_dat <- specimen_dat_list[[2]] #%>% na.omit()
-	# any NAs
-	pcod_NAs <- pcod_dat[!complete.cases(pcod_dat), ] 
 
-	yfinsole_dat <- specimen_dat_list[[3]] #%>% na.omit()
-	# any NAs
-	yfs_NAs <- yfinsole_dat[!complete.cases(yfinsole_dat), ] 
-
-	
-	# how many samples per age class?
-	pol_sum <- pollock_dat %>% # ages 1-20 have >= 100
-		group_by(age) %>%
-		summarise(n = n())
-	
-	pcod_sum <- pcod_dat %>% # ages 1-10 have >= 100
-		group_by(age) %>%
-		summarise(n = n())
-	
-	yf_sum <- yfinsole_dat %>% # ages 3-28
-		group_by(age) %>%
-		summarise(n = n())
-	
-	# trim data set by largest age with >= 100 samples
-	pollock_dat <- pollock_dat  %>% filter(between(age, 1, 20))
-	
-	pcod_dat <- pcod_dat  %>% filter(between(age, 1, 10))
-
-	yfinsole_dat <- yfinsole_dat  %>% filter(between(age, 3, 28))
-
-	# drop levels
-	pcod_dat$age_f <- droplevels(pcod_dat$age_f)
-	pollock_dat$age_f <- droplevels(pollock_dat$age_f)
-	yfinsole_dat$age_f <- droplevels(yfinsole_dat$age_f)
+	## drop levels
+	#pcod_dat$age_f <- droplevels(pcod_dat$age_f)
+	#pollock_dat$age_f <- droplevels(pollock_dat$age_f)
+	#yfinsole_dat$age_f <- droplevels(yfinsole_dat$age_f)
 
 	# combine species dfs for running models
-	dat_all <- bind_rows(pollock_dat, pcod_dat, yfinsole_dat)
+	#dat_all <- bind_rows(pollock_dat, pcod_dat, yfinsole_dat)
+	
+	dat_all <- bind_rows(specimen_dat_list)
 	
 	fwrite(dat_all, file = here("./data/sp_dat_all.csv"))
-	
 	
 	# any NAs
 	NA_dat_all <- dat_all[!complete.cases(dat_all), ] 
