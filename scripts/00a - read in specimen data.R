@@ -4,6 +4,7 @@
 	library(here)
 	library(tidyverse)
 	library(lubridate)
+	library(data.table)
 	
 
 	# create object names for file names
@@ -84,4 +85,15 @@
  	
 	write.csv(df_list_wrangled_names, file = here("./data/df_list_wrangled_names.csv"))
 	
+	# historgrams of weight by age
 	
+	hist_func <- function(df){
+	
+	ggplot(data = df, aes(log10(weight))) +
+		geom_histogram() +
+		facet_wrap(~ age, scales = "free") +
+		ggtitle(unique(df$common_name))
+		
+	}
+	
+	hists <- lapply(df_list_wrangled, hist_func)
