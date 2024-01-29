@@ -300,10 +300,6 @@
 			filter(n() > 100) %>%
 			drop_na(age_f)
 		
-		df <- df %>%
-			group_by(species) %>%
-			droplevels(age_f)
-
 		
 	}
 
