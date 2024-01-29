@@ -328,28 +328,28 @@
 
 	## presurvey temp and yfin - model didn't converge
 	#
-	#yfinsole_dat <- dat_all %>% 
-	#	filter(short_name == "yfin")
-	#
-	#yfinsole_dat$age_f <- droplevels(yfinsole_dat$age_f)
-	#
-	#mesh <- make_mesh(yfinsole_dat, xy_cols = c("X", "Y"), cutoff = 40)
-	#	
-	#		yr_btemp_rsr_int_mod_yfin <-
-	#			sdmTMB(
-	#				formula = log_wt ~ 0 + age_f + s(yr_btemp_rsr, k = 3),
-	#				data = yfinsole_dat,
-	#				mesh = mesh,
-	#				spatial = "on",
-	#				spatiotemporal = "iid",
-	#				time = "year",
-	#				priors = sdmTMBpriors(matern_st = pc_matern(range_gt = 200, sigma_lt = 2),
-	#													matern_s = pc_matern(range_gt = 200, sigma_lt = 2)))
-	#		
+	yfinsole_dat <- dat_all %>% 
+		filter(short_name == "yfin")
+	
+	yfinsole_dat$age_f <- droplevels(yfinsole_dat$age_f)
+	
+	mesh <- make_mesh(yfinsole_dat, xy_cols = c("X", "Y"), cutoff = 40)
+		
+			yr_btemp_rsr_int_mod_yfin <-
+				sdmTMB(
+					formula = log_wt ~ 0 + age_f + s(yr_btemp_rsr, by = age_f, k = 3),
+					data = yfinsole_dat,
+					mesh = mesh,
+					spatial = "on",
+					spatiotemporal = "iid",
+					time = "year",
+					priors = sdmTMBpriors(matern_st = pc_matern(range_gt = 200, sigma_lt = 2),
+														matern_s = pc_matern(range_gt = 200, sigma_lt = 2)))
+			
 #
-	#sanity(yr_btemp_rsr_int_mod_yfin)
+	sanity(yr_btemp_rsr_int_mod_yfin)
 #
-	#write_rds(yr_btemp_rsr_int_mod_yfin, file = paste0(here(), file_path_all, "yr_btemp_rsr_int_mod_yfin.rds"))
+	write_rds(yr_btemp_rsr_int_mod_yfin, file = paste0(here(), file_path_all, "yr_btemp_rsr_int_mod_yfin.rds"))
 #
 	# with no interaction
 	
