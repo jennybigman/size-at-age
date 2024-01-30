@@ -60,18 +60,11 @@
   			plot.background = element_rect(fill = "black", color = "black"))
 	}
 	#### read in specimen age & weight data ####
-	dat_all <- fread(file = here("./data/sp_dat_all.csv")) 
-	
-	dat_all$age_f <- as.factor(dat_all$age_f)
+	dat_all <- fread(file = here("./data/sp_dat_all.csv"))
+
 	dat_all$year_f <- as.factor(dat_all$year_f)
-	
-	# convert X/Y cols to KM
-	#dat_all <- dat_all %>%  
-	#	mutate(X_m = X,
-	#				 Y_m = Y,
-	#				 X = X/1000,
-	#				 Y = Y/1000)
-	
+	dat_all$age_f <- as.factor(dat_all$age_f)
+ 
 	# land polygons for plotting 
 	world <- ne_countries(scale = "medium",
                       returnclass = "sf") 
