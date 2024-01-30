@@ -81,19 +81,53 @@
  
  	
  # add species as column, bind rows, and save file
- 	df_list_wrangled_names <- dplyr::bind_rows(df_list_wrangled)
- 	
+ 	df_list_wrangled_names <- dplyr::bind_rows(df_list_wrangled) %>%
+ 		drop_na(weight, age, stationid, year)
+
 	write.csv(df_list_wrangled_names, file = here("./data/df_list_wrangled_names.csv"))
 	
-	# historgrams of weight by age
+	# histograms of weight by age
+	pollock_dat <- df_list_wrangled_names %>%
+		filter(common_name == "walleye pollock") %>%
+		group_by(age) %>%
+		filter(n() > 100) %>%
+		drop_na(age)
+	
+	pcod_dat <- df_list_wrangled_names %>%
+		filter(common_name == "Pacific cod") %>%
+		group_by(age) %>%
+		filter(n() > 100) %>%
+		drop_na(age)
+	
+	yfinsole_dat <- df_list_wrangled_names %>%
+		filter(common_name == "yellowfin sole") %>%
+		group_by(age) %>%
+		filter(n() > 100) %>%
+		drop_na(age)
+	
+	# put into list for plotting
+	dat_all_pre_list <- list(pollock_dat, pcod_dat, yfinsole_dat)
+	
+	# file_path
+	file_path <- "/plots/"
 	
 	hist_func <- function(df){
 	
-	ggplot(data = df, aes(log10(weight))) +
-		geom_histogram() +
-		facet_wrap(~ age, scales = "free") +
-		ggtitle(unique(df$common_name))
+		plot <-
+			ggplot(data = df, aes(log10(weight))) +
+			geom_histogram() +
+			facet_wrap(~ age, scales = "free") +
+			ggtitle(unique(df$common_name))
+		
+		ggsave(paste0(here(), file_path, unique(df$common_name), "hist_pre_out_rm.png"),
+					 plot, height = 5, width = 10, units = "in")
 		
 	}
 	
-	hists <- lapply(df_list_wrangled, hist_func)
+	lapply(dat_all_pre_list, hist_func)
+	
+	# need to remove outliers
+	# bind rows to see sum by species
+	dat_all_pre <- bind_rows(pollock_dat, pcod_dat, yfinsole_dat)
+
+	write.csv(dat_all_pre, file = here("./data/dat_all_pre.csv"))
