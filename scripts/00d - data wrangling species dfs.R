@@ -68,10 +68,12 @@
 	
 	#### ROMS output ####
 
-	# read in level 2 (by grid cell) ROMS hindcast temps
+	# read in level 2 (by grid cell) ROMS hindcast bottom temps
 	temp <- fread(file = here("./data/ROMS_hind_bottom_temp.csv"))
 	
+	oxygen <- fread(file = here("./data/ROMS_hind_bottom_oxygen.csv"))
 	# need to get all of the grid stations from all 3 species
+	
 	station_func <- function(df){
 		
 		df <- df %>%
@@ -152,25 +154,34 @@
 					 longitude >= 180 ~ longitude - 360,
 				   longitude < 180 ~ longitude * -1))
 	
+	oxygen <- oxygen %>%
+		select(-Xi, -Eta, -DateTime, -Time) %>%
+		mutate(longitude = case_when(
+				 longitude >= 180 ~ longitude - 360,
+			   longitude < 180 ~ longitude * -1))
+	
 	# add in col denoting grid ID based on lat/long
 	temp_grid <- left_join(temp, roms_grid)
+	
+	envr_grid <- left_join(temp_grid, oxygen)
 	
 	# filter out grid cells/points that aren't in survey data
 	ID_keep <- sort(unique(station_list$roms_ID))
 
-	temp_grid <- temp_grid %>%
+	envr_grid <- envr_grid %>%
 		rename(roms_lat = latitude,
 					 roms_long = longitude) %>%
 		select(-week, - domain) %>%
 		filter(roms_ID %in% ID_keep)
 	
 	# summarise temps by month and year for each grid cell/point
-	temp_grid_sum <- temp_grid %>%
+	envr_grid_sum <- envr_grid %>%
 		group_by(roms_ID, month, year, roms_lat, roms_long) %>%
-		summarise(bot_temp = mean(temp)) # change this to both integrated and bottom
+		summarise(bot_temp = mean(temp),
+							bot_oxy = mean(oxygen)) 
 	
 	# monthly roms temps that match survey stations
-	survey_roms_grid <- left_join(survey_grid_full, temp_grid_sum, 
+	survey_roms_grid <- left_join(survey_grid_full, envr_grid_sum, 
 																by = c('roms_ID', "year", "month"))
 
 	# any NAs?
@@ -192,20 +203,21 @@
 	
   presurvey_mo <- 4:6 # (April to June)
   
-  nn_presurvey_temps <- survey_roms_grid %>%
+  nn_presurvey_vars <- survey_roms_grid %>%
   	filter(month %in% presurvey_mo) %>%
   	group_by(roms_ID, year) %>%
-  	summarise(presurvey_btemp = mean(bot_temp)) # change to both bot and integrated temp
+  	summarise(presurvey_btemp = mean(bot_temp),
+  						presurvey_boxy = mean(bot_oxy)) 
   
   # any NAs?
-  nn_presurvey_temps[!complete.cases(nn_presurvey_temps), ]
+  nn_presurvey_vars[!complete.cases(nn_presurvey_vars), ]
   
   # add to dataframe list
 	dat_join_func <- function(df){
 		
 		df <- df %>% select(-month)
  
- 		df <- left_join(df, nn_presurvey_temps, by = c("year", "roms_ID"))
+ 		df <- left_join(df, nn_presurvey_vars, by = c("year", "roms_ID"))
 	}
  
 	specimen_dat_list <- lapply(specimen_dat_list, dat_join_func)
@@ -230,20 +242,21 @@
 		# combine and take a mean temp July - June
   	var_yr <- bind_rows(current, previous) %>%
   		group_by(roms_ID) %>%
-  		summarise(yrprior_btemp = mean(bot_temp)) %>%
+  		summarise(yrprior_btemp = mean(bot_temp),
+  							yrprior_boxy = mean(bot_oxy)) %>%
   		mutate(year = x)
    
    }
    
-  nn_yr_prior_temp <- lapply(1970:2021, yr_prior_func) %>% bind_rows()
+  nn_yr_prior_vars <- lapply(1970:2021, yr_prior_func) %>% bind_rows()
   
   # any NAs?
-  nn_yr_prior_temp[!complete.cases(nn_yr_prior_temp), ]
+  nn_yr_prior_vars[!complete.cases(nn_yr_prior_vars), ]
 
   # add to dataframe list
 	dat_join_func <- function(df){
  
- 			df <- left_join(df, nn_yr_prior_temp, by = c("year", "roms_ID"))
+ 			df <- left_join(df, nn_yr_prior_vars, by = c("year", "roms_ID"))
 	}
  
 	specimen_dat_list <- lapply(specimen_dat_list, dat_join_func)
@@ -265,7 +278,7 @@
 	std_func <- function(df){
 		
  		df <- df %>%
-			mutate_at(vars(contains("temp")), ~ scale(.) %>% as.vector) %>%
+			mutate_at(vars(contains(c("temp", "oxy"))), ~ scale(.) %>% as.vector) %>%
  			mutate(weight_std = as.vector(scale(weight)),
  						 log_wt_std = as.vector(scale(log_wt)))
 		
