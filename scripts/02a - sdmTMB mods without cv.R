@@ -2,7 +2,7 @@
 	
 
 	# file path to save models
-	file_path_all <- "/output/model output/sdmTMB output/Jan 2024/roms_survey_rep/"
+	file_path_all <- "/output/model output/sdmTMB output/Jan 2024/spatially_exp_temp/"
 	
 	#### fit models without interaction ####
 	
@@ -150,7 +150,7 @@
 	
 	# just temp
 	vars <- dat_all %>%
-		select(contains("rsr")) %>%
+		select(contains("temp")) %>%
 		names() 
 
 
@@ -175,7 +175,7 @@
   				new_dat$year_f <- droplevels(new_dat$year_f)
   				
 					# make mesh
-					mesh <- make_mesh(new_dat, xy_cols = c("X", "Y"), cutoff = 20) 
+					mesh <- make_mesh(new_dat, xy_cols = c("X", "Y"), cutoff = 30) 
 				
 					# for mod name
 					mod_name <- "_int_mod_"
@@ -198,10 +198,8 @@
 								spatiotemporal = "IID",
 							  time = "year",
 								extra_time = 2020:2099,
-								priors = sdmTMBpriors(
-									matern_st = pc_matern(range_gt = 100, sigma_lt = 2),
-									matern_s  = pc_matern(range_gt = 100, sigma_lt = 2))))
-	
+								priors = sdmTMBpriors(matern_st = pc_matern(range_gt = 200, sigma_lt = 2),
+													matern_s = pc_matern(range_gt = 200, sigma_lt = 2))))
 					
 					s <- sanity(mod_int, gradient_thresh = 0.05)
 	
@@ -315,8 +313,6 @@
 		select(contains("btemp")) %>%
 		names() 
 
-
-
 	df_func <- expand_grid(
 		sp = sp,
 		y = vars
@@ -333,46 +329,64 @@
 	
 	yfinsole_dat$age_f <- droplevels(yfinsole_dat$age_f)
 	
-	mesh <- make_mesh(yfinsole_dat, xy_cols = c("X", "Y"), cutoff = 40)
+	yfinsole_dat <- yfinsole_dat %>%
+		mutate(wt_kg = weight/1000,
+					 log_wt_kg = log10(wt_kg))
 		
-			yr_btemp_rsr_int_mod_yfin <-
+	mesh <- make_mesh(yfinsole_dat, xy_cols = c("X", "Y"), cutoff = 20)
+		
+			presurvey_btemp_no_int_mod_yfin <-
 				sdmTMB(
-					formula = log_wt ~ 0 + age_f + s(yr_btemp_rsr, by = age_f, k = 3),
+					formula = log_wt ~ 0 + s(presurvey_btemp, by = age_f, k = 3),
 					data = yfinsole_dat,
 					mesh = mesh,
 					spatial = "on",
 					spatiotemporal = "iid",
 					time = "year",
-					priors = sdmTMBpriors(matern_st = pc_matern(range_gt = 200, sigma_lt = 2),
-														matern_s = pc_matern(range_gt = 200, sigma_lt = 2)))
+					share_range = FALSE,
+					control = sdmTMBcontrol(nlminb_loops = 2, newton_loops = 0),
+					priors = sdmTMBpriors(matern_st = pc_matern(range_gt = 450, sigma_lt = 1),
+														matern_s = pc_matern(range_gt = 125, sigma_lt = 1)))
 			
-#
-	sanity(yr_btemp_rsr_int_mod_yfin)
-#
-	write_rds(yr_btemp_rsr_int_mod_yfin, file = paste0(here(), file_path_all, "yr_btemp_rsr_int_mod_yfin.rds"))
-#
-	# with no interaction
+
+	sanity(presurvey_btemp_no_int_mod_yfin)
+
+	write_rds(presurvey_btemp_no_int_mod_yfin, file = paste0(here(), file_path_all, "presurvey_btemp_no_int_mod_yfin.rds"))
+
+
+	####### pollock ####
 	
-		
-	yfinsole_dat <- dat_all %>% 
-		filter(short_name == "yfin")
+	pollock_dat <- dat_all %>% 
+		filter(short_name == "pollock")
 	
-			mesh <- make_mesh(yfinsole_dat, xy_cols = c("X", "Y"), cutoff = 20)
+	pollock_dat$age_f <- droplevels(pollock_dat$age_f)
 		
-			yr_btemp_rsr_no_int_mod_yfin <-
+	#mesh <- make_mesh(pollock_dat, xy_cols = c("X", "Y"), cutoff = 20)
+	
+	mesh <- make_mesh(
+		pollock_dat, c("X", "Y"),
+		fmesher_func = fmesher::fm_mesh_2d_inla,
+			cutoff = 60,
+			max.edge = 60,
+			offset = c(60, 60)
+		)
+	
+	plot(mesh)
+	
+	yrprior_btemp_int_mod_pollock <-
 				sdmTMB(
-					formula = log_wt ~ 0 + age_f + s(yr_btemp_rsr, k = 3),
-					data = yfinsole_dat,
+					formula = log_wt ~ 0 + age_f + s(yrprior_btemp, by = age_f, k = 3),
+					data = pollock_dat,
 					mesh = mesh,
 					spatial = "on",
 					spatiotemporal = "iid",
 					time = "year",
-			priors = sdmTMBpriors(matern_st = pc_matern(range_gt = 220, sigma_lt = 2),
-														matern_s = pc_matern(range_gt = 220, sigma_lt = 2)),
-			control = sdmTMBcontrol(nlminb_loops = 3, newton_loops = 2))
+					#extra_time = 2020:2099,
+					silent = FALSE,
+					control = sdmTMBcontrol(nlminb_loops = 2, newton_loops = 0))
+			
 
-	sanity(presurvey_btemp_no_int_mod_yfin, gradient_thresh = 0.05)
+	sanity(yrprior_btemp_int_mod_pollock)
 
-	write_rds(presurvey_btemp_int_mod_yfin, file = paste0(here(), file_path_all, "presurvey_btemp_int_mod_yfin.rds"))
+	write_rds(presurvey_btemp_no_int_mod_yfin, file = paste0(here(), file_path_all, "presurvey_btemp_no_int_mod_yfin.rds"))
 
-	
