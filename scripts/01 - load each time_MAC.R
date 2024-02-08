@@ -21,7 +21,7 @@
 	library(sdmTMBextra)
 	library(future)
 	library(DHARMa)
-	library(tidymv)
+	#library(tidymv)
 	library(ggsidekick)
 	library(see)
 	library(rnaturalearth)
@@ -61,6 +61,9 @@
 	}
 	#### read in specimen age & weight data ####
 	dat_all <- fread(file = here("./data/sp_dat_all.csv"))
+	
+	dat_list <- dat_all %>% group_by(species_name) %>%
+		group_split()
 
 	dat_all$year_f <- as.factor(dat_all$year_f)
 	dat_all$age_f <- as.factor(dat_all$age_f)
