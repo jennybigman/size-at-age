@@ -1,7 +1,7 @@
 
 	# prediction grid - works but need to resolve dateline issue and trim to survey area
 
-	ROMS_sum <- ROMS_hind %>%
+	ROMS_sum <- temp_dat %>%
 		distinct_at(vars("longitude", "latitude")) %>%
 		add_utm_columns(c("longitude", "latitude"))
 
@@ -13,10 +13,8 @@
 
 	# get mean temp by bin
 
-	temp1993 <- ROMS_hind %>% 
+	temp1993 <- temp %>% 
 		filter(year == 1993) %>%
-		group_by(latitude, longitude) %>%
-		summarise(temp = mean(temp)) %>%
 		add_utm_columns(c("longitude", "latitude"), ll_crs = 4326)
 
 	res <- 10 # in km

@@ -1,14 +1,13 @@
 # projection grid
 
 	# load ROMS hindcast K20P19 and convert longs to survey format
-  ROMS_hind <- read_csv(file = here("./data/hindcast_temp_K20P19.csv")) %>%
-  		mutate(long_not_360 = longitude,
-					 longitude = case_when(
-					 long_not_360 >= 180 ~ long_not_360 - 360,
-					 long_not_360 < 180 ~ long_not_360 * -1)) 
+  ROMS_hind <- fread(file = here("./data/ROMS_hind_bottom_temp.csv")) %>%
+  	mutate(longitude = case_when(
+				   longitude >= 180 ~ longitude - 360,
+			     longitude < 180 ~ longitude * -1)) 
   
   # summarise to unique grid cells
-  ROMS_hind_sum <- ROMS_hind %>%
+  ROMS_hind_sum <- temp %>%
   	distinct_at(vars("longitude", "latitude")) 
   
   # plot(ROMS_hind_sum$longitude, ROMS_hind_sum$latitude) # quick plot
@@ -19,12 +18,32 @@
   	st_transform(crs = 32604)
   
   # sampled locations
-  survey_grid <- pcod_dat %>%
-  	select(longitude, latitude) %>%
-  	distinct_at(vars("longitude", "latitude"))
-  
+	specimen_dat <- read_csv(file = here("./data/dat_all.csv")) %>%
+		select(-X, -...1, -sex, -start_time, -bottom_depth, -surface_temperature, -species_code) 
+	
+	# put each species df into a list
+	specimen_dat_list <- specimen_dat %>%
+		group_by(species_name) %>%
+  	group_split() 
+	
+	# get all unique survey locations 
+	station_func <- function(df){
+		
+		df <- df %>%
+		select(stationid, latitude, longitude) %>%
+		group_by(stationid) %>%
+		summarise(latitude = mean(latitude),
+							longitude = mean(longitude))
+	}
+	
+	station_list <- map(specimen_dat_list, station_func) %>% 
+		bind_rows() %>%
+		group_by(stationid) %>%
+		summarise(latitude = mean(latitude),
+							longitude = mean(longitude))
+
   # to sf object
-  survey_grid_sf <- survey_grid %>%
+  survey_grid_sf <- station_list %>%
   	st_as_sf(crs = 4326, coords = c("longitude", "latitude"), remove = FALSE) %>%
   	st_transform(crs = 32604)
 
@@ -46,22 +65,3 @@
   # can I add in temps?
   temp1993 <- ROMS_hind %>%
   	filter(year == 1993) %>%
-  	group_by(longitude, latitude) %>%
-  	summarise(temp = mean(temp)) %>%
-  	na.omit() %>%
-  	st_as_sf(crs = 4326, coords = c("longitude", "latitude"), remove = FALSE) 
-  
-  temp1993_trim <- temp1993 %>% select(latitude, longitude)
-  
-  test <- geo_inner_join(grid_in_conv, temp1993_trim)
-
-  ggplot(test, aes(longitude, latitude, color = temp)) +
-  	geom_point()
-  
-
-  test <- nn2(grid_in_conv[, c("longitude", "latitude")],
-  						temp1993[, c("longitude", "latitude")],
-  						k = 1) %>% as_tibble()
-
-  temp1993_trim$latitud
-  

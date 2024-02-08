@@ -3,9 +3,11 @@
 	# smooth grid that is general area - but how match temps?
 
 	# from https://docs.google.com/document/d/12ZVzOmjbBa8VVTK0tmaNEcN1eP93g6iagDM2c8sSsfo/edit
-	grid <- pcod2 %>%
+	
+grid <- station_list %>%
+		sdmTMB::add_utm_columns(., c("longitude", "latitude")) %>%
 		st_as_sf(coords = c("X", "Y"), 
-						 crs = suppressWarnings(sdmTMB::get_crs(pcod2, ll_names = c("longitude", "latitude")))) %>% # convert to sf frame with geometry col using X & Y
+						 crs = suppressWarnings(sdmTMB::get_crs(station_list, ll_names = c("longitude", "latitude")))) %>% # convert to sf frame with geometry col using X & Y
 		summarise(geometry = st_combine(geometry)) %>% # combine into next highest category, multipoint
 		st_convex_hull() # make polygon
 	
@@ -22,7 +24,7 @@
 
 
 	df_sf <- st_as_sf(proj_grid, coords = c("X", "Y"), 
-										crs = get_crs(pcod2, ll_names = c("longitude", "latitude")))
+										crs = get_crs(station_list, ll_names = c("longitude", "latitude")))
 	
 	df_geo <- st_transform(df_sf, crs = 4326)
 	coords <- st_coordinates(df_geo)
@@ -35,7 +37,7 @@
 
 	# use ROMS grid? ####
 
-	ROMS_hind <- read_csv(file = here("./data/hindcast_temp_K20P19.csv")) %>%
+	ROMS_hind <- read_csv(file = here("./data/ROMS_hind_bottom_temp.csv")) %>%
   		mutate(long_not_360 = longitude,
 					 longitude = case_when(
 					 long_not_360 >= 180 ~ long_not_360 - 360,
