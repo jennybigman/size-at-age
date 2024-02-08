@@ -31,19 +31,19 @@
 
 	# add columns
 	
-	#weight_metrics_func <- function(x){ 
-#
-	#	# calculate mean and sd weight by age
-	#	dat <- x %>%
-	#	group_by(age_f) %>%
-	#	mutate(mean_wt_age = mean(log_wt),
-	#				 sd_wt_age = sd(log_wt)) %>%
-	#	rowwise() %>%
-	#	mutate(log_wt_std = (log_wt - mean_wt_age)/sd_wt_age)
-	#
-	#}
-	#
-	#specimen_dat_list <- lapply(specimen_dat_list, weight_metrics_func)
+	weight_metrics_func <- function(x){ 
+
+		# calculate mean and sd weight by age
+		dat <- x %>%
+		group_by(age_f) %>%
+		mutate(mean_wt_age = mean(log_wt),
+					 sd_wt_age = sd(log_wt)) %>%
+		rowwise() %>%
+		mutate(log_wt_std = (log_wt - mean_wt_age)/sd_wt_age)
+	
+	}
+	
+	specimen_dat_list <- lapply(specimen_dat_list, weight_metrics_func)
 	
 	# remove 2021 because no output in hindcast and will throw error in sdmTMB()
 	#rem_2021 <- function(x){
