@@ -207,7 +207,7 @@
 	url_base <- "https://data.pmel.noaa.gov/aclim/thredds/"
 	opendap_area  <- "dodsC/ancillary/Bering10K_extended_grid.nc"
 	 
-	nc <- nc_open(paste(url_base, opendap_area, sep=""))
+	nc <- nc_open('https://data.pmel.noaa.gov/aclim/thredds/catalog/ancillary/Bering10K_extended_grid.nc')
 	 
 	# create objects for known lats and longs and xi and eta axes
 	lats <- ncvar_get(nc,"lat_rho")
