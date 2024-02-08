@@ -1,45 +1,68 @@
 # plots of temp and oxygen
+	
+	envr_dat <- dat_all %>%
+		select(contains(c("temp", "oxy")), 
+					 latitude, longitude, stationid, 
+					 date, year, roms_ID) %>%
+		group_by(latitude, longitude, stationid, year) %>%
+		summarise(mean_ytemp = mean(yrprior_btemp),
+							mean_ptemp = mean(presurvey_btemp),
+							mean_yoxy = mean(yrprior_boxy),
+							mean_poxy = mean(presurvey_boxy)) 
+	
+	# temp plots spatially
+	
+	ptemp_yr_plot <- 
+		ggplot(AK_coast_proj) +
+		geom_sf() +
+		geom_raster(data = envr_dat, 
+							aes(x = longitude, y = latitude,
+									fill = mean_ptemp)) +
+		facet_wrap(~ year)
+	
+	ytemp_yr_plot <- 
+		ggplot(AK_coast_proj) +
+		geom_sf() +
+		geom_point(data = envr_dat, 
+							aes(x = longitude, y = latitude,
+									color = mean_ytemp)) +
+		facet_wrap(~ year)
+	
+	# oxygen plots spatially
+	
+	poxy_yr_plot <- 
+		ggplot(AK_coast_proj) +
+		geom_sf() +
+		geom_point(data = envr_dat, 
+							aes(x = longitude, y = latitude,
+									color = mean_poxy)) +
+		facet_wrap(~ year)
+	
+	yoxy_yr_plot <- 
+		ggplot(AK_coast_proj) +
+		geom_sf() +
+		geom_point(data = envr_dat, 
+							aes(x = longitude, y = latitude,
+									color = mean_yoxy)) +
+		facet_wrap(~ year)
 
-	#### wrangle temp and oxy metrics for plotting
-	presurvey_vars <- presurvey_hind_var %>%
-		mutate(value = presurvey_mean_val)
-	
-	yr_prior_vars <- yr_prior %>%
-		mutate(value = mean_yr) %>%
-		rename()
-
-	# tidy dat of age 0 temp and oxy
-	trim_func <- function(x){
-	
-		df <- x %>%
-		ungroup() %>%
-		select(cohort, year, age0_boxy, age0_btemp) %>%
-		distinct(cohort, .keep_all = TRUE)
-		
-	}
-	
-	age0_dat <- lapply(list(pollock_dat, pcod_dat, yfinsole_dat),
-											trim_func) %>%
-							bind_rows() %>%
-							distinct(cohort, .keep_all = TRUE)
-	
-	age0_dat_long <- age0_dat %>%
-			rename(oxygen_bottom5m = age0_boxy,
-						 temp_bottom5m = age0_btemp) %>%
-		  pivot_longer(cols = contains("bottom"),
-                   names_to = "var",
-                   values_to = "value")
-
+	# timeseries
+	envr_dat_long <- 
+		pivot_longer(envr_dat, cols = )
 	
 	vars_yr <- 
 		ggplot() +
-		geom_line(data = presurvey_vars, 
+		geom_line(data = envr_data, 
 							aes(x = year, y = value),
 							color = "red") +
 		geom_line(data = yr_prior_vars, 
 							aes(x = year, y = value),
 							color = "blue") +
 		facet_wrap( ~ var, scales = "free")
+	
+	
+	
+	
 	
  
 	#######################################
