@@ -2,7 +2,7 @@
 
 	## read in models ####
 	
-	# non spatially explicit ####
+	# spatially explicit ####
 	
 	file_list <- list.files(path = paste0(here(), ("/output/model output/sdmTMB output/Feb 2024 - NN/")))
 
@@ -17,7 +17,7 @@
   	mod_names_list[[i]] <- paste0(prestring, i)
   }
   
-  mod_list <- lapply(mod_names_list, readRDS)
+  NN_mod_list <- lapply(mod_names_list, readRDS)
   
   # check sanity
   
@@ -31,13 +31,13 @@
   # separate models by species #
   
 	# pollock #
-	pol_mod_list <- mod_list[grep("pol", names(mod_list))]
+	nn_pol_mod_list <- NN_mod_list[grep("pol", names(NN_mod_list))]
 	
 	# pcod #
-	pcod_mod_list <- mod_list[grep("pcod", names(mod_list))]
+	nn_pcod_mod_list <- NN_mod_list[grep("pcod", names(NN_mod_list))]
 		
 	# yfin #
-	yfin_mod_list <- mod_list[grep("yfin", names(mod_list))]
+	nn_yfin_mod_list <- NN_mod_list[grep("yfin", names(NN_mod_list))]
 	
 		
 	## compare models with and without an interaction ##
@@ -49,29 +49,30 @@
 	
 	}
 	
-	sp_mod_lists <- list(pol_mod_list, pcod_mod_list, yfin_mod_list)
+	sp_mod_lists_nn <- list(nn_pol_mod_list, nn_pcod_mod_list, nn_yfin_mod_list)
 
 	vars <- dat_all %>%
 		select(contains(c("btemp", "boxy"))) %>%
 		names() 
 
 	df_func <- expand_grid(
-		x = sp_mod_lists,
+		x = sp_mod_lists_nn,
 		y = vars
 	)
 
-	AICs <- map2(df_func$x, df_func$y, AIC_func)
+	NN_AICs <- map2(df_func$x, df_func$y, AIC_func)
 
 
 # df to compare
- AIC_df <-	AICs %>% 
+ NN_AIC_df <-	NN_AICs %>% 
  	bind_cols() %>%
  	pivot_longer(cols = contains(c("temp", "oxy")),
- 							 names_to = 'model', values_to = "AIC") 
+ 							 names_to = 'model', values_to = "AIC") %>%
+ 	rename(AIC_nn = AIC)
  
  mod_split_func <- function(species){
  	
- 	species_AICs <- AIC_df %>%
+ 	species_AICs <- NN_AIC_df %>%
  		filter(str_detect(model, species))
  
  	temp_sp_AIC <- species_AICs %>% 
@@ -111,5 +112,7 @@
  	mod <- df$model[df$AIC == min(df$AIC)]
  }
  
- lowest_AIC <- lapply(AIC_list, lowest_AIC_func)
+ lowest_AIC <- sapply(AIC_list, lowest_AIC_func) %>% as_tibble()
+ 
+ write_csv(lowest_AIC, file = "./data/AICs_nn.csv")
  
