@@ -2,42 +2,52 @@
 
 	# read in models with an interaction
 
-	file_list <- list.files(path = paste0(here(), ("/output/model output/sdmTMB output/Jan 2024/spatially_exp_temp/")))
-	drop_list <- file_list[grep("no_int", file_list)]
-	int_mod_list_names <- setdiff(file_list, drop_list)
+	lowest_AIC <- read_csv(file = here("./data/AICs_nn.csv")) %>%
+		rename(model = value)
 	
-	prestring <- paste0(here(), ("/output/model output/sdmTMB output//Jan 2024/"))
+	file_list <- lowest_AIC[["model"]]
+	
+	prestring <- paste0(here(), ("/output/model output/sdmTMB output/Feb 2024 - NN/"))
 	 
-	 mod_names_list <- list()
+	mod_names_list <- list()
 	 
-	 for(i in int_mod_list_names){
+	 for(i in file_list){
 	 	mod_names_list[[i]] <- paste0(prestring, i)
 	 }
 	 
-	 int_mods <- lapply(mod_names_list, readRDS)
+	 mods <- lapply(mod_names_list, readRDS)
 	
-	 yr_oxy_mods <- int_mods[grep("yrprior_boxy", names(int_mods))]
-	 yr_temp_mods <- int_mods[grep("yrprior_btemp", names(int_mods))]
+	 temp_mods <- mods[grep("btemp", names(mods))]
+	 oxy_mods <- mods[grep("boxy", names(mods))]
 	 
 	 # function to plot weight vs temp by age class
 	 
 	 weight_temp_df_func <- function(sp){
 	 	
-			mod_temp <- yr_temp_mods[grep(sp, names(yr_temp_mods))]
+			mod_temp <- temp_mods[grep(sp, names(temp_mods))]
 			
 			mod_temp_obj <- pluck(mod_temp, 1)
 			
 			mod_temp_data <- pluck(mod_temp_obj, 'data')
+			
+			var_form <- mod_temp_obj$formula
+			
+			var <- gsub(".*[()]([^,]+)[,].*", "\\1", var_form)
+			
+			temp_df <- mod_temp_data %>% select(var)
 
-	 		# new dat for prediction
+			# new dat for prediction
 	 		new_dat_temp_hind <- expand_grid(
-				yrprior_btemp = seq(
-					from = min(mod_temp_data$yrprior_btemp),
-					to = max(mod_temp_data$yrprior_btemp),
+				var = seq(
+					from = min(temp_df[, 1]),
+					to = max(temp_df[ ,1]),
 					length.out = 25),
 				age_f = sort(unique(mod_temp_data$age_f)),
 				year =2000) # need all years for plotting weight at age vs year
 
+	 	new_dat_temp_hind <- new_dat_temp_hind %>%
+	 		rename("{var}" := var)
+	 		
 	 		# predict
 	 		temp_hind_preds <- predict(
 	 			mod_temp_obj,
@@ -63,7 +73,7 @@
 	 
 	 weight_oxy_df_func <- function(sp){
 	 	
-			mod_oxy <- yr_oxy_mods[grep(sp, names(yr_oxy_mods))]
+			mod_oxy <- oxy_mods[grep(sp, names(oxy_mods))]
 			
 			mod_oxy_obj <- pluck(mod_oxy, 1)
 			
@@ -72,8 +82,8 @@
 	 		# new dat for prediction
 	 		new_dat_oxy_hind <- expand_grid(
 				yrprior_boxy = seq(
-					from = min(mod_oxy_data$yrprior_btemp),
-					to = max(mod_oxy_data$yrprior_btemp),
+					from = min(mod_oxy_data$yrprior_boxy),
+					to = max(mod_oxy_data$yrprior_boxy),
 					length.out = 25),
 				age_f = sort(unique(mod_oxy_data$age_f)),
 				year = 2000) # predict for one year b/c all the same and faster
@@ -99,11 +109,14 @@
 
 	oxy_hind_plot_dfs <- map(species, weight_oxy_df_func)
 	
-	 
+	#### PLOTS ####
+	
+	file_path_plots <- paste0(here(), "/plots/")
+	
 	# weight vs temp plots
 	
 	weight_temp_plot_func <- function(df){
-		
+
 	# plot
 			weight_temp_plot <-
 					ggplot(df, aes(yrprior_btemp, est)) +
@@ -114,23 +127,48 @@
 					ylab("partial effect of\n(log) weight") +
 					xlab("bottom temperature\n(averaged June - June)") +
 					theme_sleek()
-			
+	
+	
 			species_name <- unique(df$species)
 			
 			plot_name <- paste0(species_name, "_temp.png")
 			
-			ggsave(weight_temp_plot, file = paste0(here(), file_path_plots, plot_name),
+			ggsave(weight_temp_plot, file = paste0(file_path_plots, plot_name),
 						 height = 5, width = 10, units = "in")
 			
 	}
+	
+	temp_plot_dfs <- list(temp_hind_plot_dfs[[2]], temp_hind_plot_dfs[[3]])
+	
+	map(temp_plot_dfs, weight_temp_plot_func)
+
+	
+	# for pollock
+	
+	pollock_plot_df <- temp_hind_plot_dfs[[1]]
+
+	pollock_temp_plot <-
+					ggplot(pollock_plot_df, aes(presurvey_btemp, est)) +
+					geom_ribbon(aes(ymin = low, ymax = high), 
+											fill = "lightgrey", alpha = 0.4) +
+					geom_line(color = "black") +
+					facet_wrap(~ age_f, scales = "free_y") +
+					ylab("partial effect of\n(log) weight") +
+					xlab("bottom temperature\n(averaged May - June)") +
+					theme_sleek()
+	
+	ggsave(here("./plots/pollock_temp.png"), pollock_temp_plot,
+				 	 height = 5, width = 10, units = "in")
+
+	
 
 		# weight vs oxygen plots
 
-	 	weight_oxy_plot_func <- function(df){
+	 	weight_oxy_plot_func <- function(df, var){
 		
 	# plot
 			weight_oxy_plot <-
-					ggplot(df, aes(yrprior_boxy, est)) +
+					ggplot(df, aes({{ var }}, est)) +
 					geom_ribbon(aes(ymin = low, ymax = high), 
 											fill = "lightgrey", alpha = 0.4) +
 					geom_line(color = "black") +
@@ -143,11 +181,13 @@
 			
 			plot_name <- paste0(species_name, "_oxy.png")
 			
-			ggsave(weight_oxy_plot, file = paste0(here(), file_path_plots, plot_name),
+			ggsave(weight_oxy_plot, file = paste0(file_path_plots, plot_name),
 						 height = 5, width = 10, units = "in")
 			
 	}
 	 
+	map(oxy_hind_plot_dfs, weight_oxy_plot_func)
+
 	
 	 
 	
