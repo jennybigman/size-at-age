@@ -5,7 +5,7 @@
 
 	#read in specimen data to get station lat/lons
 	specimen_dat <- read_csv(file = here("./data/dat_all.csv")) %>%
-		select(-X, -...1, -sex, -start_time, -bottom_depth, -surface_temperature, -species_code) 
+		dplyr::select(-X, -...1, -sex, -start_time, -bottom_depth, -surface_temperature, -species_code) 
 	
 	# put each species df into a list
 	specimen_dat_list <- specimen_dat %>%
@@ -16,7 +16,7 @@
 	station_func <- function(df){
 		
 		df <- df %>%
-		select(stationid, latitude, longitude) %>%
+		dplyr::select(stationid, latitude, longitude) %>%
 		group_by(stationid) %>%
 		summarise(latitude = mean(latitude),
 							longitude = mean(longitude))
@@ -63,7 +63,7 @@
 	survey_grid <- grid %>%
 		rename(lon = x,
 					 lat = y) %>%
-		select(-area, -var)
+		dplyr::select(-area, -var)
 	
 	survey_grid <- 
 		sdmTMB::add_utm_columns(
@@ -92,22 +92,22 @@
 	fill_temps <- function(x){
 		
 	# summarize to year
-	roms_temp_yr <- roms_temps %>%
+	roms_temp <- roms_temps %>%
 		filter(year == x)
 
 	survey_grid <- survey_grid %>%
 		mutate(year = x)
 	
 	survey_grid[, c(6, 7)] <- as.data.frame(
-		RANN::nn2(roms_temp_yr[, c('Y', 'X')],
+		RANN::nn2(roms_temp[, c('Y', 'X')],
               survey_grid[, c('Y', 'X')], k = 1))
 	
 	# Match nearest lat/long from ROMS
-	survey_grid$temp <- pull(roms_temp_yr[c(survey_grid$nn.idx), 'temp'])
+	survey_grid$temp <- pull(roms_temp[c(survey_grid$nn.idx), 'temp'])
 
 	# remove unecessary cols
 	survey_grid <- survey_grid %>%
-		select(-contains("nn"))
+		dplyr::select(-contains("nn"))
 
 	survey_grid
 	
@@ -128,7 +128,7 @@
 		p <- ggplot(yr_dat, aes(lon, lat, fill = temp)) +
 		  geom_raster() +
 			scale_colour_viridis_c(direction = -1) +
-			scale_fill_continuous(limits = c(-1.4, 5.2), breaks = seq(-1, 5, by = 1)) +
+		  #geom_point(size = 0.5) +
 		  coord_fixed() +
 			ggtitle(x)
 		
@@ -141,7 +141,7 @@
 	
 	map(yrs, plot_fun)
 	
-	# with  land
+	# with alaska land
 	library(mapdata)
 	reg = map_data("world2Hires")
 	reg = subset(reg, region %in% c('USSR', 'USA'))
@@ -164,8 +164,7 @@
   	            fill = "darkgrey", color = NA) +
 			scale_colour_viridis_c(direction = -1) +
 		  #geom_point(size = 0.5) +
-		  coord_fixed(ylim = c(52, 65), xlim = c(-178, -155)) +
-			#coord_map(xlim = lons, ylim = lats) +
-			ggtitle("2000") +
-			theme_sleek()
+		  #coord_fixed() +
+			coord_map(xlim = lons, ylim = lats) +
+			ggtitle("2000")
 		

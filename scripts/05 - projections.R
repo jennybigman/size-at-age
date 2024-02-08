@@ -19,6 +19,14 @@
   # read in model
 	yrprior_btemp_int_mod_pollock <- read_rds(paste0(here(), file_path_mods, "yrprior_btemp_int_mod_pollock.rds"))
 	
+	# read in forecast from Bering10k
+	ROMS_proj <- readRDS(file = "./data/ROMS_proj.rds")
+	
+	ROMS_proj_temps <- ROMS_proj %>% 
+		filter(var == "temp") %>%
+		group_by(year) %>%
+		
+
 	# forecasts
 	proj_var_2020 <- ACLIM_weekly_fut %>%
     filter(var %in% vars) %>%
