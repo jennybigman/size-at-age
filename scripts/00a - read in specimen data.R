@@ -1,6 +1,6 @@
 # read in EBS bottom trawl survey data
 	
-	library(erer)
+	#library(erer)
 	library(here)
 	library(tidyverse)
 	library(lubridate)
@@ -29,6 +29,10 @@
   		df_list[[i]] <- readRDS(i)
   		df_list
   	}
+  
+  haul_dat <- df_list[[1]]$haul %>%
+  	dplyr::select(STRATUM, STATIONID) %>%
+  	rename(stationid = STATIONID)
   
   # wrangle
 	wrangling_func <- function(x){
