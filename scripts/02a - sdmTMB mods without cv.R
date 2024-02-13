@@ -2,7 +2,7 @@
 	
 
 	# file path to save models
-	file_path_all <- "/output/model output/sdmTMB output/Jan 2024/spatially_exp_temp/"
+	file_path_all <- "/output/model output/sdmTMB output/Feb 2024 - NN/"
 	
 	#### fit models without interaction ####
 	
@@ -198,8 +198,9 @@
 								spatiotemporal = "IID",
 							  time = "year",
 								extra_time = 2020:2099,
+								share_range = FALSE,
 								priors = sdmTMBpriors(matern_st = pc_matern(range_gt = 200, sigma_lt = 2),
-													matern_s = pc_matern(range_gt = 200, sigma_lt = 2))))
+													matern_s = pc_matern(range_gt = 300, sigma_lt = 2))))
 					
 					s <- sanity(mod_int, gradient_thresh = 0.05)
 	
@@ -304,13 +305,8 @@
 
 	sp <- unique(dat_all$short_name)
 	
-#	vars <- dat_all %>%
-#		select(contains(c("btemp", "boxy"))) %>%
-#		names() 
-	
-	# just temp
 	vars <- dat_all %>%
-		select(contains("btemp")) %>%
+		select(contains(c("btemp", "boxy"))) %>%
 		names() 
 
 	df_func <- expand_grid(
