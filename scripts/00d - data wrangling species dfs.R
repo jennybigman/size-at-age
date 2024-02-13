@@ -1,7 +1,7 @@
 	# data wrangling species dataframes
 
 	specimen_dat <- read_csv(file = here("./data/dat_all.csv")) %>%
-		select(-X, -...1, -sex, -start_time, -bottom_depth, -surface_temperature, -species_code) 
+		dplyr::select(-X, -...1, -sex, -start_time, -bottom_depth, -surface_temperature, -species_code) 
 	
 	# age and cohort as factors and log weight
 	specimen_dat <- specimen_dat %>%
@@ -77,13 +77,13 @@
 	station_func <- function(df){
 		
 		df <- df %>%
-		select(stationid, latitude, longitude) %>%
+		dplyr::select(stationid, latitude, longitude) %>%
 		group_by(stationid) %>%
 		summarise(latitude = mean(latitude),
 							longitude = mean(longitude))
 	}
 	
-	station_list <- map(specimen_dat_list, station_func) %>% 
+	station_list <- purrr::map(specimen_dat_list, station_func) %>% 
 		bind_rows() %>%
 		group_by(stationid) %>%
 		summarise(latitude = mean(latitude),
@@ -126,7 +126,7 @@
 	
 	# drop cols from nn2
 	station_list <- station_list %>%
-		select(-nn.idx, -nn.dists)
+		dplyr::select(-nn.idx, -nn.dists)
 	
 	# create a df for each month and year to match to ROMS temps
 	survey_df_func <- function(x, y){
@@ -141,7 +141,7 @@
 		y = 1:12
 	)
 	
-	survey_grid_full <- map2(df_func$x, df_func$y, survey_df_func) %>%
+	survey_grid_full <- purrr::map2(df_func$x, df_func$y, survey_df_func) %>%
 		bind_rows
 
 	
@@ -149,13 +149,13 @@
 	
 	# remove unecessary cols and convert lat/long
 	temp <- temp %>%
-			select(-Xi, -Eta, -DateTime, -Time) %>%
+			dplyr::select(-Xi, -Eta, -DateTime, -Time) %>%
 			mutate(longitude = case_when(
 					 longitude >= 180 ~ longitude - 360,
 				   longitude < 180 ~ longitude * -1))
 	
 	oxygen <- oxygen %>%
-		select(-Xi, -Eta, -DateTime, -Time) %>%
+		dplyr::select(-Xi, -Eta, -DateTime, -Time) %>%
 		mutate(longitude = case_when(
 				 longitude >= 180 ~ longitude - 360,
 			   longitude < 180 ~ longitude * -1))
@@ -171,7 +171,7 @@
 	envr_grid <- envr_grid %>%
 		rename(roms_lat = latitude,
 					 roms_long = longitude) %>%
-		select(-week, - domain) %>%
+		dplyr::select(-week, - domain) %>%
 		filter(roms_ID %in% ID_keep)
 	
 	# summarise temps by month and year for each grid cell/point
@@ -188,7 +188,8 @@
 	NAs <- survey_roms_grid[!complete.cases(survey_roms_grid), ]
 	
 	# add roms IDs to species data
-	survey_grid_trim <- station_list %>% select(stationid, roms_ID)
+	survey_grid_trim <- station_list %>% 
+		dplyr::select(stationid, roms_ID)
 	
 	sp_roms <- function(df){
 		
@@ -215,7 +216,8 @@
   # add to dataframe list
 	dat_join_func <- function(df){
 		
-		df <- df %>% select(-month)
+		df <- df %>% 
+			dplyr::select(-month)
  
  		df <- left_join(df, nn_presurvey_vars, by = c("year", "roms_ID"))
 	}
@@ -266,7 +268,7 @@
 	
 	missing <- test2[!complete.cases(test2), ]
 
-	# any NAs with spatially-avg temp from ROMS?
+	# any NAs?
 	nn_specimen_dat <- specimen_dat_list %>% 
 		bind_rows() 
 	
