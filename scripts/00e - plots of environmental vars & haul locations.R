@@ -1,65 +1,34 @@
 # plots of temp and oxygen
 	
+	## plot environmental variable timeseries
 	envr_dat <- dat_all %>%
-		select(contains(c("temp", "oxy")), 
+		dplyr::select(contains(c("temp", "oxy")), 
 					 latitude, longitude, stationid, 
 					 date, year, roms_ID) %>%
-		group_by(latitude, longitude, stationid, year) %>%
+		group_by(year) %>%
 		summarise(mean_ytemp = mean(yrprior_btemp),
 							mean_ptemp = mean(presurvey_btemp),
 							mean_yoxy = mean(yrprior_boxy),
-							mean_poxy = mean(presurvey_boxy)) 
+							mean_poxy = mean(presurvey_boxy),
+							#sd_ytemp = sd(yrprior_btemp),
+							#sd_ptemp = sd(presurvey_btemp),
+							#sd_yoxy = sd(yrprior_boxy),
+							#sd_poxy = sd(presurvey_boxy)) 
+		)
 	
-	# temp plots spatially
-	
-	ptemp_yr_plot <- 
-		ggplot(AK_coast_proj) +
-		geom_sf() +
-		geom_raster(data = envr_dat, 
-							aes(x = longitude, y = latitude,
-									fill = mean_ptemp)) +
-		facet_wrap(~ year)
-	
-	ytemp_yr_plot <- 
-		ggplot(AK_coast_proj) +
-		geom_sf() +
-		geom_point(data = envr_dat, 
-							aes(x = longitude, y = latitude,
-									color = mean_ytemp)) +
-		facet_wrap(~ year)
-	
-	# oxygen plots spatially
-	
-	poxy_yr_plot <- 
-		ggplot(AK_coast_proj) +
-		geom_sf() +
-		geom_point(data = envr_dat, 
-							aes(x = longitude, y = latitude,
-									color = mean_poxy)) +
-		facet_wrap(~ year)
-	
-	yoxy_yr_plot <- 
-		ggplot(AK_coast_proj) +
-		geom_sf() +
-		geom_point(data = envr_dat, 
-							aes(x = longitude, y = latitude,
-									color = mean_yoxy)) +
-		facet_wrap(~ year)
-
 	# timeseries
-	envr_dat_long <- 
-		pivot_longer(envr_dat, cols = )
+	envr_dat_long <- envr_dat %>%
+		pivot_longer(
+			col = contains(c("temp", "oxy")),
+			names_to = "var",
+			values_to = "value")
 	
 	vars_yr <- 
-		ggplot() +
-		geom_line(data = envr_data, 
-							aes(x = year, y = value),
-							color = "red") +
-		geom_line(data = yr_prior_vars, 
-							aes(x = year, y = value),
-							color = "blue") +
+		ggplot(envr_dat_long, aes(x = year, y = value)) +
+		geom_line() +
 		facet_wrap( ~ var, scales = "free")
 	
+	############### ADD IN hindcast temp!
 	
 	
 	
@@ -220,7 +189,7 @@
 	#### mapping haul locations ####
 	
 # map by lat/long
-	all_sp_dat_loc <- df_list_wrangled_names %>%
+	all_sp_dat_loc <- dat_all %>%
 		#distinct(latitude, longitude, .keep_all = TRUE) %>%
 		na.omit() %>%
 		mutate(long_not_360 = case_when(
@@ -288,4 +257,141 @@
 					 		label = stationid)) +
 		geom_text() +
 		theme_sleek()
+	
+	
+	# for each species ####
+	library(mapdata)
+	
+	reg = map_data("world2Hires")
+	reg = subset(reg, region %in% c('USSR', 'USA'))
+	
+	# convert lat longs
+	reg$long = (360 - reg$long)*-1
+	
+	yr_dat <- survey_grid_full %>% filter(year == 2000)
+	
+	# set map limits
+	lons = c(-181, -160)
+	lats = c(52, 65)
+
+	haul_loc_func <- function(sp){
+		
+		sp_dat <- dat_all %>% filter(short_name == sp)
+		
+		sp_dat <- sp_dat %>% 
+			distinct_at(vars(latitude, longitude))
+		
+		ggplot(sp_dat, aes(longitude, latitude)) +
+		  geom_point() +
+			geom_polygon(data = reg, aes(x = long, y = lat, group = group), 
+  	            fill = "darkgrey", color = NA) +
+			scale_colour_viridis_c(direction = -1) +
+		  coord_fixed(ylim = c(52, 65), xlim = c(-178, -155)) +
+			ggtitle(sp) +
+			theme_sleek()
+		
+	}
+			
+	sp <- unique(dat_all$short_name)
+	
+	plots <- purrr::map(sp, haul_loc_func)
+		
+
+	station_filter <- function(sp){
+		
+		sp_dat <- dat_all %>% filter(short_name == sp)
+		
+		sp_dat <- left_join(sp_dat, haul_dat)
+	
+		
+	}
+	
+	sp <- unique(dat_all$short_name)
+
+	sp_dfs <- purrr::map(sp, station_filter)
+	
+	all_dfs <- sp_dfs %>% bind_rows()
+
+	stratums <- unique(all_dfs$STRATUM)	
+
+	
+		#### plot temps in models
+	
+	pollock_grid <- grids_all %>%
+		filter(species == "pollock")
+	
+	pollock_envr_vars <- dat_all %>%
+		dplyr::select(year_f, log_wt, age_f,
+									short_name, X, Y, 
+									roms_ID, latitude, longitude,
+									contains(c("temp", "oxy")))
+	
+	fill_vars_fun <- function(yr){
+		
+		var_dat_yr <- pollock_envr_vars %>%
+			filter(year_f == yr)
+		
+		pollock_grid$year <- yr
+	
+		pollock_grid[, c(8, 9)] <- as.data.frame(
+			RANN::nn2(var_dat_yr[, c("longitude", "latitude")],
+								pollock_grid[, c("lon", "lat")], k = 1))
+	
+		pollock_grid$presurvey_btemp <- 
+			pull(pollock_envr_vars[c(pollock_grid$nn.idx), 'presurvey_btemp'])
+	
+		pollock_grid$yrprior_btemp <- 
+			pull(pollock_envr_vars[c(pollock_grid$nn.idx), 'yrprior_btemp'])
+		
+		pollock_grid$presurvey_boxy <- 
+			pull(pollock_envr_vars[c(pollock_grid$nn.idx), 'presurvey_boxy'])
+		
+		pollock_grid$yrprior_boxy <- 
+			pull(pollock_envr_vars[c(pollock_grid$nn.idx), 'yrprior_boxy'])
+		
+	
+		pollock_grid_long <- pollock_grid %>%
+			pivot_longer(col = starts_with(c("pre", "yr")),
+									 names_to = "variable",
+									 values_to = "value") %>%
+			dplyr::select(-contains("nn"))
+		
+		pollock_grid_long
+		
+	}
+	
+	yrs <- sort(unique(pollock_grid_long$year))
+	
+	pollock_grid_all <- purrr::map(yrs, fill_vars_fun) %>% bind_rows()
+
+	
+	plot_yr_fun <- function(yr){
+		
+		yr_dat <- pollock_grid_all %>% filter(year == yr)
+		
+		species <- unique(yr_dat$species)
+		
+		p <- ggplot(yr_dat, aes(lon, lat, fill = value)) +
+		  geom_raster() +
+			geom_polygon(data = reg, aes(x = long, y = lat, group = group), 
+  	            fill = "darkgrey", color = NA) +
+			scale_colour_viridis_c(direction = -1) +
+		  coord_fixed(ylim = c(52, 65), xlim = c(-178, -155)) +
+			facet_wrap(~ variable) +
+			#scale_fill_continuous(limits = c(-1.4, 5.2), breaks = seq(-1, 5, by = 1)) +
+			ggtitle(paste0(yr, ":", species)) +
+			theme_sleek()
+		
+		plot_name <- paste0(species, "_", yr, "_vars.png")
+		
+		ggsave(p, file = paste0(file_path_plots, plot_name),
+					 height = 10, width = 10, units = "in")
+		
+	}
+	
+	yrs <- sort(unique(pollock_grid_long$year))
+	
+	plots <- purrr::map(yrs, plot_yr_fun)
+	
+	}
 	
