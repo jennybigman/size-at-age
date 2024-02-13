@@ -1,7 +1,10 @@
 # prediction grid
 
-	library(ggplot2)
+	library(tidyverse)
 	library(sf)
+	library(mapdata)
+	#library(raster)
+
 
 	#read in specimen data to get station lat/lons
 	specimen_dat <- read_csv(file = here("./data/dat_all.csv")) %>%
@@ -22,7 +25,7 @@
 							longitude = mean(longitude))
 	}
 	
-	station_list <- map(specimen_dat_list, station_func) %>% 
+	station_list <- purrr::map(specimen_dat_list, station_func) %>% 
 		bind_rows() %>%
 		group_by(stationid) %>%
 		summarise(latitude = mean(latitude),
@@ -56,7 +59,6 @@
 	ggplot(grid, aes(x, y, fill = var)) +
 	  geom_raster() +
 		scale_colour_viridis_c(direction = -1) +
-	  #geom_point(size = 0.5) +
 	  coord_fixed()
 	
 	# match to temp using nearest neighbor
@@ -92,18 +94,18 @@
 	fill_temps <- function(x){
 		
 	# summarize to year
-	roms_temp <- roms_temps %>%
+	roms_temp_yr <- roms_temps %>%
 		filter(year == x)
 
 	survey_grid <- survey_grid %>%
 		mutate(year = x)
 	
 	survey_grid[, c(6, 7)] <- as.data.frame(
-		RANN::nn2(roms_temp[, c('Y', 'X')],
+		RANN::nn2(roms_temp_yr[, c('Y', 'X')],
               survey_grid[, c('Y', 'X')], k = 1))
 	
 	# Match nearest lat/long from ROMS
-	survey_grid$temp <- pull(roms_temp[c(survey_grid$nn.idx), 'temp'])
+	survey_grid$temp <- pull(roms_temp_yr[c(survey_grid$nn.idx), 'temp'])
 
 	# remove unecessary cols
 	survey_grid <- survey_grid %>%
@@ -117,20 +119,36 @@
 	
 	survey_grid_full <- lapply(yrs, fill_temps) %>% bind_rows()
 
-
+	fwrite(survey_grid_full, file = here("./data/survey_grid_temps.csv"))
+	
 	# plot temps
+	reg = map_data("world2Hires")
+	reg = subset(reg, region %in% c('USSR', 'USA'))
+	
+	# convert lat longs
+	reg$long = (360 - reg$long)*-1
+	
+	# set map limits
+	lons = c(-181, -160)
+	lats = c(52, 65)
+	
 	file_path_plots <- paste0(here(), "/plots/")
+	
 	
 	plot_fun <- function(x){
 		
 		yr_dat <- survey_grid_full %>% filter(year == x)
 		
-		p <- ggplot(yr_dat, aes(lon, lat, fill = temp)) +
+		p <-
+			ggplot(yr_dat, aes(lon, lat, fill = temp)) +
 		  geom_raster() +
+			geom_polygon(data = reg, aes(x = long, y = lat, group = group), 
+  	            fill = "darkgrey", color = NA) +
 			scale_colour_viridis_c(direction = -1) +
-		  #geom_point(size = 0.5) +
-		  coord_fixed() +
-			ggtitle(x)
+		  coord_fixed(ylim = c(52, 65), xlim = c(-178, -155)) +
+			scale_fill_continuous(limits = c(-1.4, 5.2), breaks = seq(-1, 5, by = 1)) +
+			ggtitle(x) +
+			theme_sleek()
 		
 		plot_name <- paste0("temp_", x, ".png")
 		
@@ -139,32 +157,7 @@
 		
 	}
 	
-	map(yrs, plot_fun)
-	
-	# with alaska land
-	library(mapdata)
-	reg = map_data("world2Hires")
-	reg = subset(reg, region %in% c('USSR', 'USA'))
-	
-	# convert lat longs
-	reg$long = (360 - reg$long)*-1
-	
-	yr_dat <- survey_grid_full %>% filter(year == 2000)
-	
-	# set map limits
-	lons = c(-181, -160)
-	lats = c(52, 65)
+	purrr::map(yrs, plot_fun)
 	
 
-		
-		p <- 
-			ggplot(yr_dat, aes(lon, lat, fill = temp)) +
-		  geom_raster() +
-			geom_polygon(data = reg, aes(x = long, y = lat, group = group), 
-  	            fill = "darkgrey", color = NA) +
-			scale_colour_viridis_c(direction = -1) +
-		  #geom_point(size = 0.5) +
-		  #coord_fixed() +
-			coord_map(xlim = lons, ylim = lats) +
-			ggtitle("2000")
 		
