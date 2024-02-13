@@ -24,7 +24,7 @@
 	 
 	 weight_temp_df_func <- function(sp){
 	 	
-			mod_temp <- temp_mods[grep(sp, names(temp_mods))]
+			mod_temp <- temp_mods[grep("pollock", names(temp_mods))] ## change back to sp
 			
 			mod_temp_obj <- pluck(mod_temp, 1)
 			
