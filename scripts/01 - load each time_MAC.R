@@ -19,7 +19,7 @@
 	library(sf)
 	library(AICcmodavg)
 	library(sdmTMB)
-	library(sdmTMBextra)
+	#library(sdmTMBextra)
 	library(future)
 	library(DHARMa)
 	#library(tidymv)
@@ -61,9 +61,9 @@
   			plot.background = element_rect(fill = "black", color = "black"))
 	}
 	#### read in specimen age & weight data ####
-	dat_all <- fread(file = here("./data/sp_dat_all.csv"))
-	
-	dat_list <- dat_all %>% group_by(species_name) %>%
+	dat_all <- fread(file = here("./data/sp_dat_all_May_2024.csv"))
+		
+	dat_list <- dat_all %>% group_by(short_name) %>%
 		group_split()
 
 	dat_all$year_f <- as.factor(dat_all$year_f)
