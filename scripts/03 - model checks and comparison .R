@@ -3,17 +3,13 @@
 
 	## read in models ####
 	
-	# spatially explicit ####
+	# polynomial - spatially explicit ####
 	
-	file_list <- list.files(path = paste0(here(), ("/output/model output/sdmTMB output/APR 2024 NEW/")))
+	file_list <- list.files(path = paste0(here(), ("/output/model output/sdmTMB output/May 2024/poly models/")))
 
 	file_list <- stringr::str_subset(file_list, '.rds')
 	
-	# only keep yr prior models
-	#keep_list <- file_list[grep("yrprior", file_list)]
-	#file_list <- lubridate::intersect(file_list, keep_list)
-
-  prestring <- paste0(here(), ("/output/model output/sdmTMB output/APR 2024 NEW/"))
+  prestring <- paste0(here(), ("/output/model output/sdmTMB output/May 2024/poly models/"))
 
   mod_names_list <- list()
   
@@ -21,197 +17,82 @@
   	mod_names_list[[i]] <- paste0(prestring, i)
   }
   
-  mod_list <- lapply(mod_names_list, readRDS)
+  poly_mod_list <- lapply(mod_names_list, readRDS)
   
   # remove '.rds' from names
-  names(mod_list) <- str_replace_all(names(mod_list), '.rds', '')
+  names(poly_mod_list) <- str_replace_all(names(poly_mod_list), '.rds', '')
   
-  # check sanity 
-  
-  	sanity_func <- function(x){
-	 	 s <- sanity(x)
-	 }
-	 
-		s <- lapply(mod_list, sanity_func)
+  ## check sanity 
+  #
+  #	sanity_func <- function(x){
+	# 	 s <- sanity(x)
+	# }
+	# 
+	#	s <- lapply(mod_list, sanity_func)
 	
-	
-  # separate models by species #
-  
-	# pollock #
-	pol_mod_list <- mod_list[grep("pol", names(mod_list))]
-
-	# pcod #
-	pcod_mod_list <- mod_list[grep("pcod", names(mod_list))]
+  # calculate AICs
+	AIC_func <- function(x){
 		
-	# yfin #
-	yfin_mod_list <- mod_list[grep("yfin", names(mod_list))]
-	
-	# atooth #
-	atooth_mod_list <- mod_list[grep("atooth", names(mod_list))]
-	
-	
-	#### plot residuals #### does not work anymore as of April 2024
-
-	resid_fun <- function(mod){
-		
-	sims <- simulate(mod, nsim = 500, type = 'mle-mvn') 
-	plot_df <- dharma_residuals(sims, mod, plot = FALSE)
-
-	}
-		
-	pol_resids  <- purrr::map(pol_mod_list, resid_fun) #what's going on with pollock
-	pcod_resids <- purrr::map(pcod_mod_list, resid_fun)
-	yfin_resids <- purrr::map(yfin_mod_list, resid_fun)
-	atooth_resids <- purrr::map(atooth_mod_list, resid_fun)
-	
-	# save these plots
-	file_path_plots <- paste0(here(), "/plots/April 2024 plots/")
-				 
-	ggsave_fun <- function(df, name){
-		
-		p <- 
-				ggplot(df) +
-				geom_point(aes(x = expected, y = observed)) +
-				geom_abline(intercept = 0, slope = 1, color = "red") +
-			ggtitle(name)
-			
-			ggsave(filename = paste0(file_path_plots, name, ".png"),
-						 plot = p,
-						 width = 5, height = 5, units = "in")
+		mods <- poly_mod_list[grep(x, names(poly_mod_list))]
+		AIC_list <- lapply(mods, AIC)
 	
 	}
 	
-	purrr::map2(pol_resids, names(pol_resids), ggsave_fun)
-	purrr::map2(pcod_resids, names(pcod_resids), ggsave_fun)
-	purrr::map2(yfin_resids, names(yfin_resids), ggsave_fun)
-	purrr::map2(atooth_resids, names(atooth_resids), ggsave_fun)
+	sp <- unique(dat_all$short_name)
 
-	## compare models with and without an interaction ##
+	poly_AICs <- purrr::map(sp, AIC_func)
 	
-	AIC_func <- function(x, y){
+	AIC_df_messy_poly <-	poly_AICs %>% 
+ 		bind_cols() %>%
+ 		pivot_longer(cols = contains(c("temp", "oxy")),
+ 								 names_to = 'model', values_to = "AIC") %>%
+		mutate(model_short = 
+						case_when(grepl("presurvey_btemp", model) ~ "presurvey_btemp",
+								 		  grepl("yrprior_btemp", model)   ~ "yrprior_btemp",
+								 		  grepl("presurvey_boxy", model)  ~ "presurvey_boxy",
+								 		  grepl("yrprior_boxy", model)    ~ "yrprior_boxy")) %>%
+		mutate(species =
+					 	case_when(grepl("pcod", model) ~ "pcod",
+					 						grepl("atooth", model) ~ "atooth",
+					 						grepl("yfin", model) ~ "yfin",
+					 						grepl("pollock", model) ~ "pollock")) %>%
+		mutate(poly_type = 
+					 	case_when(grepl("2", model) ~ "2",
+					 						grepl("3", model) ~ "3"))
+	
+	AIC_df_messy_poly2 <- AIC_df_messy_poly %>%
+		filter(grepl("2", model)) %>%
+		mutate(mod_type = "poly2",
+					 mod_param = case_when(
+					 	!grepl("no", model) ~ "int",
+					 	grepl("no", model) ~ "no_int"
+					 )) %>%
+		select(-model)
+	
 		
-		mods_list <- x[grep(y, names(x))]
-		AIC_list <- lapply(mods_list, AIC)
+	AIC_df_messy_poly3 <- AIC_df_messy_poly %>%
+		filter(grepl("3", model)) %>%
+		mutate(mod_type = "poly3",
+					 mod_param = case_when(
+					 	!grepl("no", model) ~ "int",
+					 	grepl("no", model) ~ "no_int"
+					 )) %>%
+		select(-model)
 	
-	}
+	AIC_df_messy_poly <- bind_rows(AIC_df_messy_poly2, AIC_df_messy_poly3)
+
+	top_poly_mods <- AIC_df_messy_poly %>%
+		group_by(species, model_short) %>%
+		slice_min(order_by = AIC)
 	
-	sp_mod_lists <- list(pol_mod_list, pcod_mod_list, yfin_mod_list, atooth_mod_list)
-
-	vars <- dat_all %>%
-		select(contains(c("btemp", "boxy"))) %>%
-		names() 
-
-	df_func <- expand_grid(
-		x = sp_mod_lists,
-		y = vars
-	)
-
-	AICs <- map2(df_func$x, df_func$y, AIC_func)
-
-
-# df to compare
- AIC_df <-	AICs %>% 
- 	bind_cols() %>%
- 	pivot_longer(cols = contains(c("temp", "oxy")),
- 							 names_to = 'model', values_to = "AIC") 
  
- 
- #### compare different variables and way of summarizing ####
-
- mod_split_func <- function(species){
- 	
- 	species_AICs <- AIC_df %>%
- 		filter(str_detect(model, species))
- 
- 	temp_sp_AIC <- species_AICs %>% 
- 		filter(str_detect(model,"temp"))
- 	
- 	oxy_sp_AIC <- species_AICs %>% 
- 		filter(str_detect(model, "oxy"))
- 	
- 	sp_AIC <- list(temp_sp_AIC, oxy_sp_AIC)
- 	
- }
- 
- names <- unique(dat_all$short_name)
- 
- sp_AIC_dfs <- lapply(names, mod_split_func) 
- 
-
- pol_comp_temp <- sp_AIC_dfs[[1]][1] %>% bind_rows()
- pol_comp_oxy  <- sp_AIC_dfs[[1]][2] %>% bind_rows()
-
- pcod_comp_temp <- sp_AIC_dfs[[2]][1] %>% bind_rows()
- pcod_comp_oxy  <- sp_AIC_dfs[[2]][2] %>% bind_rows()
-
- yfin_comp_temp <- sp_AIC_dfs[[3]][1] %>% bind_rows()
- yfin_comp_oxy <- sp_AIC_dfs[[3]][2] %>% bind_rows()
-
- atooth_comp_temp <- sp_AIC_dfs[[4]][1] %>% bind_rows()
- atooth_comp_oxy <- sp_AIC_dfs[[4]][2] %>% bind_rows()
- 
- AIC_list <- list(
- 	atooth_comp_temp, atooth_comp_oxy,
- 	pol_comp_temp, pol_comp_oxy,
-	pcod_comp_temp, pcod_comp_oxy,
-	yfin_comp_temp, yfin_comp_oxy)
-
- # extract the model with the lowest AIC from each
- lowest_AIC_func <- function(df){
- 	
- 	mod <- df$model[df$AIC == min(df$AIC)]
- }
- 
- lowest_AIC <- sapply(AIC_list, lowest_AIC_func) %>% as_tibble()
- 
- write_csv(lowest_AIC, file = "./data/AICs.csv")
- 
- # which explains weight at age better - temp or oxygen?
- 
- drop <- AIC_df$model[grep("no_int", AIC_df$model)]
- 
- var_comp_df <- AIC_df %>% 
- 	filter(model %!in% drop)
- 
- # split by species
- sp_split_func <- function(species){
- 	
- 	species_AICs <- var_comp_df %>%
- 		filter(str_detect(model, species))
- }
- 
- names <- unique(dat_all$short_name)
- 
- sp_comp_dfs <- lapply(names, sp_split_func) 
-
- pol_comp <- sp_comp_dfs[1] %>% bind_rows() #oxygen
- pcod_comp <- sp_comp_dfs[2] %>% bind_rows() #temp
- yfin_comp <- sp_comp_dfs[3] %>% bind_rows() #temp but no oxygen mod
- atooth_comp <- sp_comp_dfs[4] %>% bind_rows() #temp
-
- # lowest 
- lowest_AIC_fun <- function(df){
- 
-	mod <- df$model[df$AIC == min(df$AIC)]
+	# gams - spatially explicit ####
 	
-	mod
-	
- }
- 
- top_mod_list <- purrr::map(list(pol_comp, pcod_comp, yfin_comp, atooth_comp), lowest_AIC_fun) %>% 
- 	unlist() %>%
- 	as_tibble() %>%
- 	rename(mod = value)
-
- write.csv(top_mod_list, file = "./data/top_mod_list.csv")
- 
- # for the models with presurvey temp/oxy that converged, which way of summarizing temp is better
- 
- 	file_list <- list.files(path = paste0(here(), ("/output/model output/sdmTMB output/APR 2024 NEW/")))
+	file_list <- list.files(path = paste0(here(), ("/output/model output/sdmTMB output/May 2024/smooth models/")))
 
 	file_list <- stringr::str_subset(file_list, '.rds')
 	
-  prestring <- paste0(here(), ("/output/model output/sdmTMB output/APR 2024 NEW/"))
+  prestring <- paste0(here(), ("/output/model output/sdmTMB output/May 2024/smooth models/"))
 
   mod_names_list <- list()
   
@@ -219,86 +100,129 @@
   	mod_names_list[[i]] <- paste0(prestring, i)
   }
   
-  mod_list <- lapply(mod_names_list, readRDS)
+  gam_mod_list <- lapply(mod_names_list, readRDS)
   
-  	
-  # separate models by species #
+  # remove '.rds' from names
+  names(gam_mod_list) <- str_replace_all(names(gam_mod_list), '.rds', '')
   
-	# pollock #
-	pol_mod_list <- mod_list[grep("pol", names(mod_list))]
+  ## check sanity 
+  #
+  #	sanity_func <- function(x){
+	# 	 s <- sanity(x)
+	# }
+	# 
+	#	s <- lapply(mod_list, sanity_func)
+	
+  # some of these models have issues - check residuals ####
+  
+  ## pollock #
+	#pol_mod_list <- gam_mod_list[grep("pol", names(gam_mod_list))]
+#
+	## pcod #
+	#pcod_mod_list <- gam_mod_list[grep("pcod", names(gam_mod_list))]
+	#	
+	## yfin #
+	#yfin_mod_list <- gam_mod_list[grep("yfin", names(gam_mod_list))]
+	#
+	## atooth #
+	#atooth_mod_list <- gam_mod_list[grep("atooth", names(gam_mod_list))]
+	#
+	#
+	##### plot residuals #### does not work anymore as of April 2024
+#
+	#resid_fun <- function(mod){
+	#	
+	#sims <- simulate(mod, nsim = 500, type = 'mle-mvn') 
+	#plot_df <- dharma_residuals(sims, mod, plot = FALSE)
+#
+	#}
+		
+#	pol_resids  <- purrr::map(pol_mod_list, resid_fun) #what's going on with pollock
+#	pcod_resids <- purrr::map(pcod_mod_list, resid_fun)
+#	yfin_resids <- purrr::map(yfin_mod_list, resid_fun)
+#	atooth_resids <- purrr::map(atooth_mod_list, resid_fun)
+	
+	## save these plots
+	#file_path_plots <- paste0(here(), "/output/plots/May 2024/residual plots for gam models/")
+	#			 
+	#ggsave_fun <- function(df, name){
+	#	
+	#	p <- 
+	#			ggplot(df) +
+	#			geom_point(aes(x = expected, y = observed)) +
+	#			geom_abline(intercept = 0, slope = 1, color = "red") +
+	#		ggtitle(name)
+	#		
+	#		ggsave(filename = paste0(file_path_plots, name, ".png"),
+	#					 plot = p,
+	#					 width = 5, height = 5, units = "in")
+	#
+	#}
+	#
+#	purrr::map2(pol_resids, names(pol_resids), ggsave_fun)
+#	purrr::map2(pcod_resids, names(pcod_resids), ggsave_fun)
+#	purrr::map2(yfin_resids, names(yfin_resids), ggsave_fun)
+#	purrr::map2(atooth_resids, names(atooth_resids), ggsave_fun)
 
-	# pcod #
-	pcod_mod_list <- mod_list[grep("pcod", names(mod_list))]
-		
-	# yfin #
-	yfin_mod_list <- mod_list[grep("yfin", names(mod_list))]
+	#### they all look ok ####
 	
-	# atooth #
-	atooth_mod_list <- mod_list[grep("atooth", names(mod_list))]
 	
+	# calculate AICs
+	AIC_func <- function(x){
 		
-	AIC_func <- function(x, y){
-		
-		mods_list <- x[grep(y, names(x))]
-		AIC_list <- lapply(mods_list, AIC)
+		mods <- gam_mod_list[grep(x, names(gam_mod_list))]
+		AIC_list <- lapply(mods, AIC)
 	
 	}
 	
-	sp_mod_lists <- list(pol_mod_list, pcod_mod_list, yfin_mod_list, atooth_mod_list)
+	sp <- unique(dat_all$short_name)
 
-	vars <- dat_all %>%
-		select(contains(c("btemp", "boxy"))) %>%
-		names() 
-
-	df_func <- expand_grid(
-		x = sp_mod_lists,
-		y = vars
-	)
-
-	AICs <- map2(df_func$x, df_func$y, AIC_func)
-
-
-# df to compare
- AIC_df <-	AICs %>% 
- 	bind_cols() %>%
- 	pivot_longer(cols = contains(c("temp", "oxy")),
- 							 names_to = 'model', values_to = "AIC") 
- 
- 
- #### compare different variables and way of summarizing ####
-
- mod_split_func <- function(species){
- 	
- 	species_AICs <- AIC_df %>%
- 		filter(str_detect(model, species))
- 
- 	temp_sp_AIC <- species_AICs %>% 
- 		filter(str_detect(model,"temp"))
- 	
- 	oxy_sp_AIC <- species_AICs %>% 
- 		filter(str_detect(model, "oxy"))
- 	
- 	sp_AIC <- list(temp_sp_AIC, oxy_sp_AIC)
- 	
- }
- 
- names <- unique(dat_all$short_name)
- 
- sp_AIC_dfs <- lapply(names, mod_split_func) 
- 
- atooth_comp <- sp_AIC_dfs[[1]] %>% 
- 	bind_rows() %>%
- 	filter(!str_detect(model, "no_int"))
- 
- pol_comp <- sp_AIC_dfs[[2]] %>% 
- 	bind_rows() %>%
- 	filter(!str_detect(model, "no_int"))
- 
- pcod_comp <- sp_AIC_dfs[[3]] %>% 
- 	bind_rows() %>%
- 	filter(!str_detect(model, "no_int"))
-
- yfin_comp <- sp_AIC_dfs[[4]] %>% 
- 	bind_rows() %>%
- 	filter(!str_detect(model, "no_int"))
-
+	gam_AICs <- purrr::map(sp, AIC_func)
+	
+	AIC_df_messy_gam <-	gam_AICs %>% 
+ 		bind_cols() %>%
+ 		pivot_longer(cols = contains(c("temp", "oxy")),
+ 								 names_to = 'model', values_to = "AIC") %>%
+		mutate(model_short = 
+						case_when(grepl("presurvey_btemp", model) ~ "presurvey_btemp",
+								 		  grepl("yrprior_btemp", model)   ~ "yrprior_btemp",
+								 		  grepl("presurvey_boxy", model)  ~ "presurvey_boxy",
+								 		  grepl("yrprior_boxy", model)    ~ "yrprior_boxy")) %>%
+		mutate(species =
+					 	case_when(grepl("pcod", model) ~ "pcod",
+					 						grepl("atooth", model) ~ "atooth",
+					 						grepl("yfin", model) ~ "yfin",
+					 						grepl("pollock", model) ~ "pollock")) %>%
+		mutate(mod_type = "gam") %>%
+		mutate(mod_param = case_when(
+					 	!grepl("no", model) ~ "int",
+					 	grepl("no", model) ~ "no_int"
+					 )) %>%
+		select(-model)
+				 
+	top_gam_mods <- AIC_df_messy_gam %>%
+		group_by(species, model_short) %>%
+		slice_min(order_by = AIC)
+	
+	############# compare ############
+	
+	top_poly_mods_all <- top_poly_mods %>%
+		rename(AIC_poly = AIC) %>%
+		select(-mod_type, -mod_param)
+	
+	top_gam_mods_all <- top_gam_mods %>%
+		rename(AIC_gam = AIC) %>%
+		select(-mod_type, - mod_param)
+	
+	top_mods <- full_join(top_poly_mods_all, top_gam_mods_all)
+	
+	### AIC is lower for poly models
+	
+	# lowest AIC
+	
+	top_mods_sp <- top_poly_mods %>%
+		group_by(species) %>%
+		slice_min(order_by = AIC)
+		
+		
+	
