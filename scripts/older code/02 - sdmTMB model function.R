@@ -1,13 +1,12 @@
 # sdmTMB function - without CV, knots specified
 	
 	# mesh for each species - best to do this visually for model convergence
-
+	dat_all$age_f <- as.factor(dat_all$age_f)
+	
 	## pollock mesh ####
 	pollock_dat <- dat_all %>% 
 		dplyr::filter(short_name == "pollock")
 	
-	pollock_dat$age_f <- droplevels(pollock_dat$age_f)
-		
 	pol_mesh <- make_mesh(
 		pollock_dat, c("X", "Y"),
 		fmesher_func = fmesher::fm_mesh_2d_inla,
@@ -22,8 +21,6 @@
 	pcod_dat <- dat_all %>% 
 		dplyr::filter(short_name == "pcod")
 	
-	pcod_dat$age_f <- droplevels(pcod_dat$age_f)
-		
 	pcod_mesh <- make_mesh(
 		pcod_dat, c("X", "Y"),
 		fmesher_func = fmesher::fm_mesh_2d_inla,
@@ -38,8 +35,6 @@
 	yfin_dat <- dat_all %>% 
 		dplyr::filter(short_name == "yfin")
 
-	yfin_dat$age_f <- droplevels(yfin_dat$age_f)
-		
 	yfin_mesh <- make_mesh(
 		yfin_dat, c("X", "Y"),
 		fmesher_func = fmesher::fm_mesh_2d_inla,
@@ -54,8 +49,6 @@
 	atooth_dat <- dat_all %>% 
 		filter(short_name == "atooth")
 	
-	atooth_dat$age_f <- droplevels(atooth_dat$age_f)
-		
 	atooth_mesh <- make_mesh(
 		atooth_dat, c("X", "Y"),
 		fmesher_func = fmesher::fm_mesh_2d_inla,
@@ -70,9 +63,9 @@
 
 		
 	# file path to save models
-	file_path_all <- "/output/model output/sdmTMB output/APR 2024 NEW/"
+	file_path_all <- "/output/model output/sdmTMB output/May 2024/smooth models/"
 	
-	#### fit models without interaction ####
+	#### fit smooth models without interaction ####
 	
 	sdmTMB_no_int_func <- function(sp, y){
 		
@@ -101,7 +94,7 @@
 					}
   				
 					# for mod name
-					mod_name <- "_no_int_mod_"
+					mod_name <- "_no_int_smooth_spe"
 					
 		# run models	
 		
@@ -120,7 +113,6 @@
 								spatial = "on",
 								spatiotemporal = "IID",
 							  time = "year",
-								extra_time = 2020:2099,
 							  share_range = FALSE,
 							  silent = FALSE,
 								priors = sdmTMBpriors(
@@ -186,7 +178,7 @@
 					}
   				
 					# for mod name
-					mod_name <- "_int_mod_"
+					mod_name <- "_int_smooth_spe_"
 					
 					
 		# run models	
@@ -206,7 +198,6 @@
 								spatial = "on",
 								spatiotemporal = "IID",
 							  time = "year",
-								extra_time = 2022:2099,
 							  share_range = FALSE,
 							  silent = FALSE,
 								priors = sdmTMBpriors(
@@ -218,7 +209,7 @@
 	
 		
 		 						write_rds(mod_int, 
-									file = paste0(here(), file_path_all, y, mod_name, sp, "poly.rds"))
+									file = paste0(here(), file_path_all, y, mod_name, sp, ".rds"))
 		 						
 		 						print(paste("int model for", sp, "with", y, "complete"))
 		 	
