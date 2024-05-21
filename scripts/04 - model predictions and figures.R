@@ -1,11 +1,13 @@
 # 04 - predictions of weight and environmental variables (temp, oxy)
 
-	# read in file with top model list
-	lowest_AIC <- read_csv(file = here("./data/AICs_nn.csv"))
+# last updated: May 23 2024
 
-	file_list <- lowest_AIC[["value"]]
+	# read in file with top model list
+	top_mods <- read.csv(file = "./data/top_mods_list.csv")
+
+	file_list <- top_mods$model
 	
-	prestring <- paste0(here(), ("/output/model output/sdmTMB output/Feb 2024 - NN/"))
+	prestring <- paste0(here(), ("/output/model output/sdmTMB output/May 2024/poly models/"))
 	 
 	mod_names_list <- list()
 	 
@@ -13,16 +15,18 @@
 	 	mod_names_list[[i]] <- paste0(prestring, i)
 	 }
 	 
-	 mods <- lapply(mod_names_list, readRDS)
+	mods <- lapply(mod_names_list, readRDS)
 	
-	 temp_mods <- mods[grep("btemp", names(mods))]
-	 oxy_mods <- mods[grep("boxy", names(mods))]
-	 
-	 # function to plot weight vs temp by age class
+	temp_mods <- mods[grep("temp", names(mods))]
+
+	oxy_mods <- mods[grep("oxy", names(mods))]
+	
+
+	# function to plot weight vs temp by age class
 	 
 	 weight_temp_df_func <- function(sp){
 	 	
-			mod_temp <- temp_mods[grep(sp, names(temp_mods))] ## change back to sp
+			mod_temp <- temp_mods[grep(sp, names(temp_mods))] 
 			
 			mod_temp_obj <- pluck(mod_temp, 1)
 			
@@ -43,7 +47,7 @@
 					to = max(temp_df[ ,1]),
 					length.out = 25),
 				age_f = sort(unique(mod_temp_data$age_f)),
-				year = 2000) # need all years for plotting weight at age vs year
+				year = 2004) # need all years for plotting weight at age vs year
 
 	 	new_dat_temp_hind <- new_dat_temp_hind %>%
 	 		rename("{var}" := var)
@@ -68,6 +72,21 @@
 
 	temp_hind_plot_dfs <- purrr::map(species, weight_temp_df_func)
 
+	# wrangle for plotting
+	
+	temp_df_wrangle_fun <- function(df){
+		
+		new_dat <- df %>%
+			pivot_longer(
+				cols = contains("temp"),
+				names_to = "var",
+				values_to = "value")
+		
+		new_dat
+		
+	}
+				
+	temp_plot_df <- purrr::map(temp_hind_plot_dfs, temp_df_wrangle_fun) %>% bind_rows()
 	
 	# function to plot weight vs oxygen by age class
 	 
@@ -94,7 +113,7 @@
 					to = max(oxy_df[ ,1]),
 					length.out = 25),
 				age_f = sort(unique(mod_oxy_data$age_f)),
-				year = 2000) # need all years for plotting weight at age vs year
+				year = 2004) # need all years for plotting weight at age vs year
 
 	 	new_dat_oxy_hind <- new_dat_oxy_hind %>%
 	 		rename("{var}" := var)
@@ -119,65 +138,95 @@
 
 	oxy_hind_plot_dfs <- purrr::map(species, weight_oxy_df_func)
 	
+	oxy_df_wrangle_fun <- function(df){
+		
+		new_dat <- df %>%
+			pivot_longer(
+				cols = contains("oxy"),
+				names_to = "var",
+				values_to = "value")
+		
+		new_dat
+		
+	}
+				
+	oxy_plot_df <- purrr::map(oxy_hind_plot_dfs, oxy_df_wrangle_fun) %>% bind_rows()
 	
-	#### PLOTS ####
+	#### PLOTS #### 
 	
-	file_path_plots <- paste0(here(), "/plots/")
+	file_path_plots <- paste0(here("./output/plots/May 2024/"))
 	
-	# weight vs temp plots
+	# temp plots
 	
-	weight_temp_plot_func <- function(df){
+	temp_plot_func <- function(sp){
 
-	# plot
-			weight_temp_plot <-
-					ggplot(df, aes(yrprior_btemp, est)) +
+		sp_dat <- temp_plot_df %>% filter(species == sp)
+		
+		sp_dat <- sp_dat %>%
+			mutate(age = age_f,
+						 age = as.character(age),
+						 age = as.numeric(age))
+
+		x_label <- unique(sp_dat$var)
+
+		# plot
+		plot <-
+					ggplot(sp_dat, aes(value, est)) +
 					geom_ribbon(aes(ymin = low, ymax = high), 
 											fill = "lightgrey", alpha = 0.4) +
 					geom_line(color = "black") +
-					facet_wrap(~ age_f, scales = "free_y") +
+					facet_wrap(~ reorder(age_f, age), scales = "free") +
 					ylab("partial effect of\n(log) weight") +
-					xlab("bottom temperature\n(averaged June - June)") +
+					xlab(x_label) +
+					ggtitle(sp) +
 					theme_sleek()
-	
-	
-			species_name <- unique(df$species)
 			
-			plot_name <- paste0(species_name, "_noncentered_temp.png")
+			plot_name <- paste0(sp, "_temp_May2024.png")
 			
-			ggsave(weight_temp_plot, file = paste0(file_path_plots, plot_name),
+			ggsave(plot, file = paste0(file_path_plots, plot_name),
 						 height = 5, width = 10, units = "in")
 			
 	}
 	
-	purrr::map(temp_hind_plot_dfs, weight_temp_plot_func)
+	sp <- unique(dat_all$short_name)
+	
+	purrr::map(sp, temp_plot_func)
 
 	# weight vs oxygen plots
 
-	 	weight_oxy_plot_func <- function(df, var){
+	oxy_plot_func <- function(sp){
+
+		oxy_sp_dat <- oxy_plot_df %>% filter(species == sp)
 		
-	# plot
-			weight_oxy_plot <-
-					ggplot(df, aes(x = yrprior_boxy, y = est)) +
+		oxy_sp_dat <- oxy_sp_dat %>%
+			mutate(age = age_f,
+						 age = as.character(age),
+						 age = as.numeric(age))
+		
+		x_label <- unique(oxy_sp_dat$var)
+
+		# plot
+		plot <-
+					ggplot(oxy_sp_dat, aes(value, est)) +
 					geom_ribbon(aes(ymin = low, ymax = high), 
 											fill = "lightgrey", alpha = 0.4) +
 					geom_line(color = "black") +
-					facet_wrap(~ age_f, scales = "free_y") +
+					facet_wrap(~ reorder(age_f, age), scales = "free") +
 					ylab("partial effect of\n(log) weight") +
-					xlab("bottom oxygen\n(averaged June - June)") +
+					xlab(x_label) +
+					ggtitle(sp) +
 					theme_sleek()
 			
-			species_name <- unique(df$species)
+			plot_name <- paste0(sp, "_oxy_May2024.png")
 			
-			plot_name <- paste0(species_name, "_noncentered_oxy.png")
-			
-			ggsave(weight_oxy_plot, file = paste0(file_path_plots, plot_name),
+			ggsave(plot, file = paste0(file_path_plots, plot_name),
 						 height = 5, width = 10, units = "in")
 			
 	}
-	 
-	purrr::map(oxy_hind_plot_dfs, weight_oxy_plot_func)
-
 	
+	sp <- unique(dat_all$short_name)
+	
+	purrr::map(sp, oxy_plot_func)
 	 
 	
 	
