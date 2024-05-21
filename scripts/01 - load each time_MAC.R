@@ -26,6 +26,8 @@
 	library(ggsidekick)
 	library(see)
 	library(rnaturalearth)
+	library(knitr)
+	library(kableExtra)
 	
 	`%!in%` = Negate(`%in%`)
 
@@ -62,6 +64,7 @@
 	}
 	#### read in specimen age & weight data ####
 	dat_all <- fread(file = here("./data/sp_dat_all_May_2024.csv"))
+
 		
 	dat_list <- dat_all %>% group_by(short_name) %>%
 		group_split()
