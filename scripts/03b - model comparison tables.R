@@ -116,9 +116,9 @@
 	
 	glimpse(top_poly_mods)
 		
-	kbl(top_poly_mods, digits = 2) %>%
-		kable_minimal() %>%
-		save_kable(file = "output/tables/top_poly_mods.png")
+#	kbl(top_poly_mods, digits = 2) %>%
+#		kable_minimal() %>%
+#		save_kable(file = "output/tables/top_poly_mods.png")
 
 	# GAM models ####
 	
