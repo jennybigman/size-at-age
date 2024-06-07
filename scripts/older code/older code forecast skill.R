@@ -3,7 +3,7 @@
 		
 		nsims = 100
 		
-		preds <- predict(atooth_top_mod_cv$models[[1]], se_fit = FALSE, nsim = nsims)
+		preds <- predict(mod, se_fit = FALSE, nsim = nsims)
 	
 		preds_df <- preds %>%
 			as_tibble()
@@ -29,8 +29,8 @@
 	
 	atooth_mods <- atooth_top_mod_cv$models
 	num_mods <- length(atooth_mods)
-	atooth_preds <- purrr::map2(atooth_mods, 1:num_mods, preds_fun) %>% 
-		bind_rows() 
+	atooth_preds <- purrr::map2(atooth_mods, 1:num_mods, preds_fun) #%>% 
+		#bind_rows() 
 	
 	ages <- atooth_dat %>%
 		select(age, age_f, year, log_wt)
@@ -101,7 +101,7 @@
 	# predictions generated from these models
 	preds_fun <- function(mod, x){
 		
-		preds <- predict(mod, se_fit = TRUE)
+		preds <- predict(atooth_top_mod_cv$models[[1]], se_fit = TRUE)
 		
 		preds$mod_run <- as.factor(x)
 		#preds <- preds %>% 
