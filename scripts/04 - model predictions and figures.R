@@ -1,7 +1,106 @@
 # 04 - predictions of weight and environmental variables (temp, oxy)
 
-# last updated: May 23 2024
+# last updated: June 1 2024
+	
+	###########################################################################
+	#### Changes in size-at-age with year ####
+	###########################################################################
 
+	# read in file list of models with just year
+	file_list <- list.files(path = paste0(here(), ("/output/model output/sdmTMB output/May 2024/year models/")))
+
+	prestring <- paste0(here(), ("/output/model output/sdmTMB output/May 2024/year models/"))
+	 
+	mod_names_list <- list()
+	 
+	 for(i in file_list){
+	 	mod_names_list[[i]] <- paste0(prestring, i)
+	 }
+	 
+	mods <- lapply(mod_names_list, readRDS)
+	
+	# predict
+	
+	preds_fun <- function(mod){
+	
+		dat <- mods[[2]]$data
+		
+	#	min_yr <- min(dat$year)
+	#	max_yr <- max(dat$year)
+	#	
+	#	ages <- sort(unique(dat$age_f))
+#
+	#	new_dat <- tibble(
+	#		age_f = ages,
+	#		year = seq(from = min_yr, to = max_yr, length.out = length(unique(dat$year)))
+	#	)
+			
+		preds <- predict(mods[[1]], se_fit = FALSE, nsim = 100)
+		
+		preds <- preds %>%
+			as_tibble()
+			
+		preds_mean <- preds %>%
+			rowwise() %>%
+			summarise(mean_est = mean(c_across(1:ncol(preds))))
+		
+		preds_sd <- preds %>%
+			rowwise() %>%
+			summarise(mean_sd = sd(c_across(1:ncol(preds))))
+		
+		preds_se <- preds_sd %>%
+			mutate(mean_se = mean_sd/(sqrt(length(preds_sd))))
+						 
+		preds <- bind_cols(preds_mean, preds_se) 
+		
+		preds <- bind_cols(preds, dat)
+		
+	}
+	
+	preds_yr <- map(mods, preds_fun)
+	
+	pred_yr <- preds_yr %>% bind_rows()
+	
+	# plots
+	
+	file_path_plots <- paste0(here("./output/plots/May 2024/"))
+	
+	# temp plots
+	
+	yr_plot_func <- function(sp){
+
+		sp_dat <- pred_yr %>% filter(short_name == "pcod") %>%
+
+		# plot
+		plot <-
+					ggplot(sp_dat, aes(year, mean_est)) +
+					#geom_ribbon(aes(ymin = mean_est - mean_se, ymax = mean_est + mean_se), 
+					#						fill = "lightgrey", alpha = 0.4) +
+					geom_line(color = "black") +
+					#geom_point(aes(x = year, y = log_wt), color = "black") +
+					facet_wrap(~ reorder(age_f, age), scales = "free") +
+					ylab("partial effect of\n(log) weight") +
+					#ggtitle(sp) +
+					theme_sleek()
+			
+			#plot_name <- paste0(sp, "_temp_May2024.png")
+			
+			#ggsave(plot, file = paste0(file_path_plots, plot_name),
+			#			 height = 5, width = 10, units = "in")
+			
+		plot
+	}
+	
+	sp <- unique(dat_all$short_name)
+	
+	temp_plots <- purrr::map(sp, temp_plot_func)
+
+	
+	###########################################################################
+	#### Changes in size-at-age with temp/oxygen ####
+	###########################################################################
+
+	
 	# read in file with top model list
 	top_mods <- read.csv(file = "./data/top_mods_list.csv")
 
@@ -26,7 +125,7 @@
 	 
 	 weight_temp_df_func <- function(sp){
 	 	
-			mod_temp <- temp_mods[grep(sp, names(temp_mods))] 
+	 		mod_temp <- temp_mods[grep(sp, names(temp_mods))] 
 			
 			mod_temp_obj <- pluck(mod_temp, 1)
 			
@@ -138,6 +237,7 @@
 
 	oxy_hind_plot_dfs <- purrr::map(species, weight_oxy_df_func)
 	
+	# wrangle
 	oxy_df_wrangle_fun <- function(df){
 		
 		new_dat <- df %>%
@@ -186,6 +286,7 @@
 			ggsave(plot, file = paste0(file_path_plots, plot_name),
 						 height = 5, width = 10, units = "in")
 			
+		plot
 	}
 	
 	sp <- unique(dat_all$short_name)
@@ -228,6 +329,24 @@
 	
 	purrr::map(sp, oxy_plot_func)
 	 
+	#### customize axes ####
 	
+	atooth_temp_plot <- 
+		temp_plots[[1]] +
+		ggh4x::facetted_pos_scales(
+    y = list(
+      scale_y_continuous(limits = c(1, 2)), # age 2
+      scale_y_continuous(limits = c(2, 3)), # age 3
+      scale_y_continuous(limits = c(2, 3)), # age 4
+      scale_y_continuous(limits = c(2, 3)), # age 5
+      scale_y_continuous(limits = c(2, 3)), # age 6
+      scale_y_continuous(limits = c(2, 3)), # age 7
+      scale_y_continuous(limits = c(3, 4)), # age 8
+      scale_y_continuous(limits = c(3, 4)), # age 9
+      scale_y_continuous(limits = c(2.75, 3.75)), # age 10
+      scale_y_continuous(limits = c(3, 5)),       # age 11
+      scale_y_continuous(limits = c(2.5, 3.5))   # age 12
+    )
+  )
 	
 	
