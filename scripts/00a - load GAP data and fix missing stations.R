@@ -7,6 +7,9 @@
 	GAP_dat <- readRDS(here("./data/ak_bts.RDS"))
 
 	names(GAP_dat) <- tolower(names(GAP_dat)) 
+	
+	GAP_dat <- GAP_dat %>%
+		filter(region != "HG")
 
 	# there are some samples with missing stations - which ones and where are they?
 	missing_stations <- GAP_dat %>% 
@@ -46,7 +49,7 @@
 		filter(is.na(stationid)) 
 
 	# assign them a station ID (just for matching to temp)
-	new_ids <- ids::random_id(43, 1)
+	new_ids <- ids::random_id(nrow(stations_NA), 1)
 	new_ids <- paste0("MU_", new_ids)
 	
 	stations_NA <- stations_NA %>%
