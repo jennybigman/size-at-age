@@ -37,6 +37,7 @@
 		group_by(common_name, age) %>%
 		summarise(count = n())
 
+	
 	#### map sample location ####
 	
 	# alaska map for plot
@@ -47,7 +48,7 @@
 	reg$long = (360 - reg$long)*-1
 
 	# file path for plots
-	file_path_plots <- paste0(here(), "/plots/May 2024/")
+	file_path_plots <- paste0(here(), "/output/plots/May 2024/")
 
 	# mapping function - no 0 catch	####
 	survey_map_fun <- function(sp){
@@ -79,4 +80,4 @@
 	#purrr::map(sp, survey_map_fun)
 	
 
-	
+	 
