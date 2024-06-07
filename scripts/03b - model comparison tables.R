@@ -116,9 +116,9 @@
 	
 	glimpse(top_poly_mods)
 		
-#	kbl(top_poly_mods, digits = 2) %>%
-#		kable_minimal() %>%
-#		save_kable(file = "output/tables/top_poly_mods.png")
+	kbl(top_poly_mods, digits = 2) %>%
+		kable_minimal() %>%
+		save_kable(file = "output/tables/top_poly_mods.png")
 
 	# GAM models ####
 	
@@ -293,4 +293,62 @@
 		mutate(model = paste0(model, ".rds"))
 	
 	write_csv(top_mods_list, file = "./data/top_mods_list.csv")
+	
+	
+	# compare top models to models without temperature/oxygen
+	# Polynomial models ####
+	
+	## read in models ####
+	file_list <- list.files(path = paste0(here(), ("/output/model output/sdmTMB output/May 2024/no covariate models/")))
+
+	file_list <- stringr::str_subset(file_list, '.rds')
+	
+  prestring <- paste0(here(), ("/output/model output/sdmTMB output/May 2024/no covariate models/"))
+
+  mod_names_list <- list()
+  
+  for(i in file_list){
+  	mod_names_list[[i]] <- paste0(prestring, i)
+  }
+  
+  nocov_mod_list <- lapply(mod_names_list, readRDS)
+ 
+ # remove '.rds' from names
+  names(nocov_mod_list) <- str_replace_all(names(nocov_mod_list), '.rds', '')
+
+  # calculate AICs
+	AIC_func <- function(x){
 		
+		mods <- nocov_mod_list[grep(x, names(nocov_mod_list))]
+		AIC_list <- lapply(mods, AIC)
+	
+	}
+	
+	sp <- unique(dat_all$short_name)
+
+	nocov_AICs <- purrr::map(sp, AIC_func)
+
+	top_mods_sum <- top_mods_sp %>%
+		select(model, AIC, species) %>%
+		rename(top_sat_model = model)
+	
+	AIC_df_messy_no_cov <-	nocov_AICs %>% 
+ 		bind_cols() %>%
+ 		pivot_longer(cols = contains("cov"),
+ 								 names_to = 'model', values_to = "AIC") %>%
+		rename(AIC_no_cov = AIC) %>%
+		mutate(species =
+					 	case_when(grepl("pcod", model) ~ "pcod",
+					 						grepl("atooth", model) ~ "atooth",
+					 						grepl("yfin", model) ~ "yfin",
+					 						grepl("pollock", model) ~ "pollock")) %>%
+		select(-model)
+	
+	AIC_comp_no_cov <- full_join(AIC_df_messy_no_cov, top_mods_sum)
+	
+	kbl(AIC_comp_no_cov, digits = 2) %>%
+		kable_minimal() %>%
+		save_kable(file = "output/tables/no_cov_mod_comp.png")
+	
+
+	
