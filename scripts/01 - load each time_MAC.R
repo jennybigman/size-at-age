@@ -28,6 +28,7 @@
 	library(rnaturalearth)
 	library(knitr)
 	library(kableExtra)
+	library(ggh4x)
 	
 	`%!in%` = Negate(`%in%`)
 
