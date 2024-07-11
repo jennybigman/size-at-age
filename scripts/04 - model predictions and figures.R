@@ -83,97 +83,122 @@
   
 	yr_mod_list_trim <- lapply(mod_names_list, readRDS)
  
-  # set up names
-	nums <- qdapRegex::ex_between(names(yr_mod_list_trim), "yr_mod_", ".rds")
-	nums <- unlist(nums)
+ # extract and plot the year effect estimates from the models
 
-	ages <- str_sub(nums, start= -2)
-	ages <- str_remove(ages, pattern = "_")
+ # set up names
+	short_name <- 	str_extract(names(yr_mod_list_trim), "[^_yr]+")
+	age <- unlist(qdapRegex::ex_between(names(yr_mod_list_trim), "age_", ".rds"))
+	sp_age_dat <- tibble(short_name, age)
 
-	# predictions 
+	sp_age_dfs <- split(sp_age_dat, seq(nrow(sp_age_dat)))
 	
-	preds_fun <- function(mod){
+	ex_est_fun <- function(mod){
 		
-		preds <- predict(mod, se_fit = TRUE)
+		pars <- tidy(mod, conf.int = TRUE)
+		
+		pars$year <- str_extract(pars$term, "(?<=_f).*")
+		
+		pars
 	
 	}
 	
-	preds <- purrr::map(yr_mod_list_trim, preds_fun) %>% 
-			bind_rows() 
+	par_dfs <- map(yr_mod_list_trim, ex_est_fun)
 	
-	preds_df <- preds %>% bind_rows()
+	## try with df
 	
-	#write.csv(preds_df, file = here("data", "preds_yr_mods.csv"))
-
-	#preds_df <- read.csv(file = here("data", "preds_yr_mods.csv"))
-
+	add_sp_age_fun <- function(par_df, sp_age_df){
+		
+		pars <- bind_cols(par_df, sp_age_df)
+		
+		pars
 	
-	# year plots
-
-	#preds_df <- read.csv(file = here("data", "preds_yr_mods.csv"))
-	
-	preds_df$age_f <- as.factor(preds_df$age_f)
-	preds_df$year_f <- as.factor(preds_df$year_f)
-
-
-	#### plots ####
-	
-	# make plots and save 
-	
-	yr_plots <- function(sp){
-	
-	 sp_dat <- preds_df %>%
-	 	filter(short_name == sp)
-	 
- 	 sp_dat_sum <- sp_dat %>%
-		group_by(year_f, age_f, age, year) %>%
-	 	summarise(mean_est = mean(est),
-	 						mean_se = mean(est_se))
-	 
- 	 name <- unique(sp_dat$common_name)
- 	 num <- length(unique(sp_dat$age_f))/3
- 	 num <- floor(num)
- 	 
- 	 x_pos <- unique(sp_dat_sum$year_f)[[2]]
- 	 y_pos <- max(sp_dat_sum$mean_est)
- 	 
-	 sp_dat_sum <- sp_dat_sum %>% 
-  	arrange(age) %>% 
-  	mutate(age_f = fct_inorder(age_f)) 
-	 
-	 sp_dat_sum$age_label <- paste0("Age ", sp_dat_sum$age_f)
-	 
-	 sp_dat_sum$year_f <- fct_reorder(sp_dat_sum$year_f, sp_dat_sum$year)
-	 
-	 p <- 
-	 	ggplot(sp_dat_sum) +
-	 	geom_pointrange(aes(x = year_f, y = mean_est,
-	 											ymin = mean_est - mean_se,
-	 											ymax = mean_est + mean_se),
-	 									size = 0.05) +
-	 	facet_wrap(~ fct_reorder(age_label, age), scales = "free_y", ncol = 4) +
-	 	ylab("Predicted mean (log) weight (g)") +
-	 	xlab("Year") +
-	 	scale_x_discrete(guide = guide_axis(angle = 90)) +
-		ggtitle(name) +
-	 	theme_sleek() +
-	 	theme(
-	 		axis.title = element_text(size = 8),
-	 		axis.text = element_text(size = 6),
-	 		strip.text = element_text(size = 8),
-	 		panel.spacing.y = unit(0, "lines")
-	 	)
-	 
-	 ggsave(here("output", "plots", "May 2024", "year models", paste0(name, ".png")),
-	 			 height = 6, width = 9)
-
 	}
 	
-	sp <- unique(dat_all$short_name)
+	fdf <- tibble(
+		par_df = par_dfs,
+		sp_age_df = sp_age_dfs
+	)
 	
-	purrr::map(sp, yr_plots)
+	par_df <- map2(fdf$par_df, fdf$sp_age_df, add_sp_age_fun) %>% bind_rows()
 	
+	par_df$year <- as.numeric(par_df$year)
+	par_df$age <- as.numeric(par_df$age)
 	
+	par_df$age_label <- as.factor(paste0("Age ", par_df$age))
+
+	#ggplot(par_df) +
+	# 	geom_pointrange(aes(x = year, y = estimate,
+	# 											ymin = conf.low,
+	# 											ymax = conf.high),
+	# 									size = 0.05) +
+	# 	ggh4x::facet_grid2(sp ~ age, scales = "free", independent = "y", render_empty = FALSE) +
+	# 	ylab("Predicted mean (log) weight (g)") +
+	# 	xlab("Year") +
+	# 	scale_x_discrete(guide = guide_axis(angle = 90)) +
+	#	#ggtitle(name) +
+	# 	theme_sleek() +
+	# 	theme(
+	# 		axis.title = element_text(size = 8),
+	# 		axis.text = element_text(size = 6),
+	# 		strip.text = element_text(size = 8),
+	# 		panel.spacing.y = unit(0, "lines")
+	# 	)
+	
+	# plots
+	
+	yr_plot_fun <- function(sp){
+		
+		sp_pars <- par_df %>% filter(short_name == sp)
+	
+		p <-
+			ggplot(sp_pars) +
+	 		geom_pointrange(aes(x = year, y = estimate,
+	 												ymin = conf.low,
+	 												ymax = conf.high),
+	 										size = 0.05) +
+	 		facet_wrap(~ fct_reorder(age_label, age), scales = "free", nrow = 1) +
+	 		#ylab("Predicted mean (log) weight (g)") +
+	 		#xlab("Year") +
+	 		theme_sleek() +
+	 		theme(
+	 			axis.title = element_blank(),
+	 			axis.text = element_text(size = 6),
+	 			strip.text = element_text(size = 8),
+	 			panel.spacing.y = unit(0, "lines")
+	 		)
+	
+		p
+		
+	}
+	
+	sp <- unique(par_df$short_name)
+	yr_plots <- map(sp, yr_plot_fun)
+	
+
+	# put together
+	plot1 <- yr_plots[[1]]
+	plot2 <- yr_plots[[2]]
+	plot3 <- yr_plots[[3]]
+	plot4 <- yr_plots[[4]]
+	
+	yr_plot <- plot1/plot2/plot3/plot4 
+	
+	#+  labs(tag = "Predicted mean (log) weight (g)") +
+  #theme(
+  #  plot.tag = element_text(size = rel(1), angle = 90),
+  #  #plot.tag.position = "left"
+  #)
+	#
+	#plot_a_list <- function(master_list_with_plots, no_of_rows, no_of_cols) {
+#
+  #patchwork::wrap_plots(master_list_with_plots, 
+  #                      nrow = no_of_rows, ncol = no_of_cols)
+#}#
+
+#plot_a_list(yr_plots, 4, 1)
+	
+	 ggsave(here("output", "plots", "May 2024", "year models", "all_yr_plots.png"), yr_plot,
+	 			 height = 7, width = 12)
 
 	###########################################################################
 	#### Changes in size-at-age with temp/oxygen ####
