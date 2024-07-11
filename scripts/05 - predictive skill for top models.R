@@ -315,7 +315,7 @@
 		
 		nsims = 100
 		
-		preds <- predict(mod, se_fit = FALSE, nsim = nsims)
+		preds <- predict(mod, se_fit = FALSE, nsim = nsims) #feed prediction grid for each species
 	
 		preds_df <- preds %>%
 			as_tibble()
@@ -413,7 +413,7 @@
 	
 		obs <- dat %>%
 			select(age, log_wt, year, age_f)
-	
+		
 		obs_rep <- replicate(length(f_yrs$year), obs, simplify = FALSE) %>% bind_rows()
 
 		preds <- pred_df %>% filter(short_name == sp)
@@ -438,21 +438,54 @@
 	## plot forecast skill for the 3 species with longer time series ####
 	#######################################################################
 
+	# set up observations
+	
+	# add observations going back in time
+	
+	obs_dat_fun <- function(sp){
+		
+		dat <- dat_all %>% filter(short_name == sp)
+
+		dat_sum <- dat %>%
+			group_by(age, age_f, year, year_f) %>%
+			summarise_at(vars(log_wt),list(mean = ~mean(.), se = ~sd(./sqrt(.))))
+		
+		f_yrs <- forecast_yrs_dfs %>% filter(short_name == sp) %>%
+			rename(year = forecast_yrs)
+		
+		f_yrs <- f_yrs$year
+
+		dat_sum <- dat_sum %>% filter(year %!in% f_yrs)	
+		
+		dat_sum$age_label <- paste0("Age ", dat_sum$age)
+
+		dat_sum$type_name <- "Observed"
+		
+		dat_sum$short_name <- sp
+		
+		dat_sum
+		
+	}
+	
+	sp <- unique(dat_all$short_name)[-1]
+	
+	obs_df <- map(sp, obs_dat_fun) %>% bind_rows()
+		
+		
 	# function to concatenate predicted values and plot
+	
 	
 	plot_fun <- function(df){
 		
+		# assign species name to object
 		sp <- unique(df$short_name)
 
+		# set up prediction df
 		all_preds_sum <- df %>% 
+			select(-mean_sd, mean_se, mean_est_se_nocov) %>%
 			group_by(age_f, year) %>%
-			summarise(mean_est = mean(mean_est),
-								mean_se = mean(mean_se),
-								mean_est_nocov = mean(mean_est_nocov),
-								mean_est_se_nocov = mean(mean_est_se_nocov),
-								mean_log_wt = mean(log_wt),
-								mean_obs_se = (sd(log_wt))/(sqrt(length(log_wt))))
-		
+			 summarise_at(vars(mean_est, mean_est_nocov, log_wt),list(mean = ~mean(.), se = ~sd(./sqrt(.))))
+			
 		all_preds_sum <- all_preds_sum %>%
 			mutate(age = age_f,
 						 age = as.character(age),
@@ -465,7 +498,10 @@
 		all_preds_sum$age_label <- paste0("Age ", all_preds_sum$age_f)
 		
 		all_preds_waa <- all_preds_sum %>%
-			select(-contains("se"))
+			select(-contains("se")) %>%
+			rename(mean_est = mean_est_mean,
+						 mean_est_nocov = mean_est_nocov_mean,
+						 mean_log_wt = log_wt_mean)
 		
 		all_preds_waa <- all_preds_waa %>%
 			pivot_longer(
@@ -484,9 +520,9 @@
 				values_to = "waa_se"
 			) %>%
 			mutate(type = case_when(
-				type == "mean_se" ~ "mean_est",
-				type == "mean_est_se_nocov" ~ "mean_est_nocov",
-				type == "mean_obs_se" ~ "mean_log_wt"
+				type == "mean_est_se" ~ "mean_est",
+				type == "mean_est_nocov_se" ~ "mean_est_nocov",
+				type == "log_wt_se" ~ "mean_log_wt"
 			))
 		
 		all_preds_waa <- left_join(all_preds_waa, all_preds_waa_se)
@@ -500,34 +536,44 @@
 		
 		all_preds_waa$type_name <- as.factor(all_preds_waa$type_name)
 		
+		# assign colors
 		colors <- c("#1E88E5", "#FFC107", "#004D40")
 		
 		names(colors) <- levels(all_preds_waa$type_name)
 		
-		p <- 
-			ggplot(data = all_preds_waa, aes(x = year, group = type_name, color = type_name)) +
-			geom_point(aes(x = year, y = waa_value), 
+		# add observations going back in time
+		obs_dat <- obs_df %>% filter(short_name == sp)
+
+		# plot
+		pcod_plot <- 
+			ggplot() +
+			geom_point(data = all_preds_waa, 
+								 aes(x = year, y = waa_value, color = type_name, group = type_name), 
 								 alpha = 0.5) +
-			geom_linerange(aes(ymin = waa_value - waa_se, ymax = waa_value + waa_se), 
-										 group = "type", alpha = 0.5) +
+			geom_linerange(data = all_preds_waa, 
+										 aes(x = year, ymin = waa_value - waa_se, ymax = waa_value + waa_se,
+										 		group = type_name, color = type_name), 
+												alpha = 0.5) +
+				geom_point(data = obs_dat, 
+								 aes(x = year, y = mean), color = "#1E88E5", 
+								 alpha = 0.5) +
+			geom_linerange(data = obs_dat, 
+										 aes(x = year, ymin = mean - se, ymax = mean + se),
+										 		color = "#1E88E5", 
+												alpha = 0.5) +
 	 		facet_wrap(~ fct_reorder(age_label, age), scales = "free_y") +
 			scale_color_manual(name = "type_name", values = colors) +
 			ylab("Mean (log) weight (g)") +
 	 		xlab("Year") +
 			theme_sleek() +
-			#guides(color = guide_stringlegend()) +
 			theme(
 				legend.title = element_blank(),
 				legend.text = element_text(size = 8, face = "bold"),
-				legend.position = "bottom"
+				legend.position = "right"
 			) +
 			ggtitle(sp) 
 		
 		
-		#p <- 
-		#	shift_legend2(p)
-
-	
 		plot_name <- paste0(sp, "_forecast_skill.png")
 
 		ggsave(here("output", "plots", "May 2024", "forecast skill", plot_name), 
@@ -535,8 +581,9 @@
 
 		
 	}
+
+		map(forecast_dfs, plot_fun)
 	
-	map(forecast_dfs, plot_fun)
 	
 	#######################################################################
 	## plot atooth separately because only 1 year of forecast ####
