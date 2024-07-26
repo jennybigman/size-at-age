@@ -2,7 +2,7 @@ library(sdmTMB)
 library(ggplot2)
 library(dplyr)
 
-load("pcod_dat.Rdata")
+load("data/pcod_dat.Rdata")
 
 mesh <- make_mesh(
   pcod_dat, c("X", "Y"),
@@ -113,9 +113,9 @@ ggplot(out, aes(year, est_sim, ymin = lwr_sim, ymax = upr_sim)) +
 
 # now do it over all ages?
 
-max_year <- max(pcod_dat$year)
-
-fit_one_age <- function(this_age, yrs_forecast = 1L) {
+fit_one_age <- function(this_age, yrs_forecast = 1L, 
+	.formula = log_wt ~ 1 + poly(yrprior_btemp, 3, raw = TRUE)) {
+	max_year <- max(pcod_dat$year)
   print(this_age)
   max_fit_year <- max_year - yrs_forecast
   d <- dplyr::filter(pcod_dat, age_f == this_age, year <= max_fit_year)
@@ -123,14 +123,14 @@ fit_one_age <- function(this_age, yrs_forecast = 1L) {
   all_yrs <- seq(min(pcod_dat$year), max(pcod_dat$year))
   fit_age <-
     sdmTMB(
-      log_wt ~ 1 + poly(yrprior_btemp, 3, raw = TRUE),
+    	.formula,
       data = d,
       mesh = mesh_sub,
       spatial = "on",
       time_varying = ~1,
       time_varying_type = "rw0",
       spatiotemporal = "iid",
-      control = sdmTMBcontrol(profile = "b_j"),
+      # control = sdmTMBcontrol(profile = "b_j"),
       time = "year",
       extra_time = all_yrs,
       share_range = FALSE,
@@ -298,3 +298,24 @@ polys3 |>
 # interesting??
 
 # would a quadratic be a bit less crazy?
+
+# compare ELPD with model without temperature:
+
+out_no_temp <- furrr::future_map_dfr(all_ages, fit_one_age, yrs_forecast = 2L, 
+	.formula = log_wt ~ 1)
+
+e1 <- out |> select(age_f, elpd) |> distinct() |> 
+	rename(elpd_temp = elpd)
+e2 <- out_no_temp |> select(age_f, elpd) |> distinct() |> 
+	rename(elpd = elpd)
+
+left_join(e1, e2) |> 
+	tidyr::pivot_longer(-age_f) |> 
+	ggplot(aes(age_f, value, colour = name)) + geom_line()
+ 
+left_join(e1, e2) |> 
+	mutate(e_diff = elpd_temp - elpd) |> 
+	ggplot(aes(age_f, e_diff)) + geom_line() +
+	geom_hline(yintercept = 0, lty = 2) +
+	ylab("Difference in expected log likelihood\n(positive = better with temperature)")
+
