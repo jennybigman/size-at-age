@@ -36,24 +36,62 @@ fit1 <-
 sanity(fit1)
 fit1
 
-# confirm 'profile' on b_j is same and faster:
+# need to drop age = 10 because there are none in many years:
+# could bin into plus group?
+d <- droplevels(filter(pcod_dat, age < 10))
+mesh <- make_mesh(
+	d, c("X", "Y"),
+	fmesher_func = fmesher::fm_mesh_2d_inla,
+	cutoff = 50,
+	offset = c(60, 70)
+)
+fit3 <-
+	sdmTMB(
+		log_wt ~ age_f * year_f + age_f * poly(yrprior_btemp, 3, raw = TRUE),
+		data = d,
+		mesh = mesh,
+		spatial = "on",
+		spatiotemporal = "iid",
+		control = sdmTMBcontrol(profile = "b_j"),
+		time = "year",
+		share_range = FALSE,
+		silent = FALSE,
+		priors = sdmTMBpriors(
+			matern_st = pc_matern(range_gt = 250, sigma_lt = 2),
+			matern_s = pc_matern(range_gt = 300, sigma_lt = 2)
+		)
+	)
 
-fit2 <-
-  sdmTMB(
-    log_wt ~ 0 + age_f * poly(yrprior_btemp, 3, raw = TRUE),
-    data = pcod_dat,
-    mesh = mesh,
-    spatial = "on",
-    spatiotemporal = "iid",
-    control = sdmTMBcontrol(profile = "b_j"),
-    time = "year",
-    share_range = FALSE,
-    silent = FALSE,
-    priors = sdmTMBpriors(
-      matern_st = pc_matern(range_gt = 250, sigma_lt = 2),
-      matern_s = pc_matern(range_gt = 300, sigma_lt = 2)
-    )
-  )
+fit4 <- update(fit3, 
+	formula. = log_wt ~ year_f + age_f * poly(yrprior_btemp, 3, raw = TRUE))
+
+fit5 <- update(fit3, 
+	formula. = log_wt ~ age_f * poly(yrprior_btemp, 3, raw = TRUE))
+
+fit6 <- update(fit3,
+	formula. = log_wt ~ s(year, by = age_f, k = 4) + age_f * poly(yrprior_btemp, 3, raw = TRUE), do_fit = FALSE)
+.n <- length(as.numeric(fit6$tmb_params$ln_smooth_sigma))
+# mapping smoother SDs to be shared
+fit6 <- update(fit3,
+	formula. = log_wt ~ s(year, by = age_f, k = 4) + age_f * poly(yrprior_btemp, 3, raw = TRUE), control = sdmTMBcontrol(map = list(ln_smooth_sigma = factor(rep(1, .n)))))
+
+# doesn't converge:
+# fit7 <- update(fit3,
+# 	formula. = log_wt ~ s(age, by = year_f, k = 4) + age_f * poly(yrprior_btemp, 3, raw = TRUE), do_fit = FALSE)
+# .n <- length(as.numeric(fit7$tmb_params$ln_smooth_sigma))
+# # mapping smoother SDs to be shared
+# fit7 <- update(fit3,
+# 	formula. = log_wt ~ s(age, by = year_f, k = 4) + age_f * poly(yrprior_btemp, 3, raw = TRUE), control = sdmTMBcontrol(map = list(ln_smooth_sigma = factor(rep(1, .n)))))
+
+d$fake_time <- factor(paste0(d$year, d$age))
+fit8 <- update(fit3,
+	formula. = log_wt ~ age_f * year_f + age_f * poly(yrprior_btemp, 3, raw = TRUE),
+	time = "fake_time")
+fit8
+AIC(fit3, fit4, fit5, fit6, fit8) |> 
+	as.data.frame() |> 
+	arrange(AIC)
+
 logLik(fit1)
 logLik(fit2)
 
@@ -84,6 +122,12 @@ fit_age <-
       matern_s = pc_matern(range_gt = 300, sigma_lt = 2)
     )
   )
+
+
+p <- get_pars(fit_age)
+p$b_rw_t
+p$b_rw_t[,,1]
+
 fit_age
 fit_age$sd_report
 theta <- get_pars(fit_age)
