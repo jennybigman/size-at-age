@@ -1,4 +1,4 @@
-# remotes::install_github("pbs-assess/sdmTMB", ref = "mvrfrw")
+# remotes::install_github("pbs-assess/sdmTMB", ref = "mvrfrw", force = TRUE)
 library(sdmTMB)
 
 library(ggplot2)
@@ -115,6 +115,10 @@ ggplot(mvrw, aes(year, value + fixed_est, colour = age, group = age)) +
 # create a map vector for that...
 mm <- model.matrix(~0 + year_age, data = d) |> colnames()
 map_vec <- gsub("year_age[0-9]+ ", "", mm)
+# test <- gsub("^\\S+ ", "", mm)
+
+
+
 
 # but share last 2 are too data sparse in last age bin:
 table(d$age, d$year)
@@ -124,7 +128,7 @@ map_vec <- factor(map_vec)
 
 fit3 <-
 	sdmTMB(
-		log_wt ~ 0 + age_f * poly(yrprior_btemp, 2),
+		log_wt ~ 0 + age_f + poly(yrprior_btemp, 2, raw = TRUE),
 		data = d,
 		mesh = mesh,
 		spatial = "on",
