@@ -19,7 +19,7 @@
 	pcod_meshes <- purrr::map(pcod_dat_list, \(d){
 		
 		mesh <- fm_mesh_2d(loc = d[,c("X","Y")],
-                            cutoff = 50)
+                            cutoff = 37)
 	
 	})
 	

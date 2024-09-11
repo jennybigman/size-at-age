@@ -9,8 +9,6 @@ library(fmesher)
 	pcod_dat <- dat_all |> filter(short_name == "pcod")
 	table(pcod_dat$age, pcod_dat$year)
 
-	pcod_dat <- pcod_dat |>
-		filter(age <= 9) 
 	
 	# mesh
 	mesh_p = fm_mesh_2d(loc = pcod_dat[,c("X","Y")],

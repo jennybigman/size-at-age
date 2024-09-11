@@ -1,62 +1,51 @@
 # quick model comparison
 
 	file_path <- paste0(here(), "/output/model output/tinyVAST/sep age models/")
-
-	# Polynomial models ####
+	file_path_AR <- paste0(here(), "/output/model output/tinyVAST/sep age models/AR term/")
 	
-	## read in models ####
-	
-	file_list <- list.files(path = file_path)
-	
-	
-	no_cov_mods <- stringr::str_subset(file_list, 'no')
+	read_mod_fun <- function(file_path, mod){
 		
-	temp_mods <- stringr::str_subset(file_list, 'temp')
-	temp_mods <- stringr::str_subset(temp_mods, 'gam', negate = TRUE)
-
-	oxy_mods <- stringr::str_subset(file_list, 'oxy')
-	oxy_mods <- stringr::str_subset(oxy_mods, 'gam', negate = TRUE)
-
-
-	#### read in mods ####
+		mod <- readRDS(paste0(file_path, mod))
+		mod
+		
+	}
 	
-	# no cov mods
-  mod_names_list <- list()
-  
-  for(i in no_cov_mods){
-  	mod_names_list[[i]] <- paste0(file_path, i)
+	# AIC function
+	AIC_fun <- function(mod) {
+  	
+	  	AIC <- AIC(mod)
+	  	AIC
+  	
   }
   
-	no_cov_mods <- lapply(mod_names_list, readRDS)
-	
-	# remove '.rds' from names
-  names(no_cov_mods) <- str_replace_all(names(no_cov_mods), '.rds', '')
- 
-  # temp mods
-  mod_names_list <- list()
-  
-  for(i in temp_mods){
-  	mod_names_list[[i]] <- paste0(file_path, i)
-  }
-  
-	temp_mods <- lapply(mod_names_list, readRDS)
-	
-	# remove '.rds' from names
-  names(temp_mods) <- str_replace_all(names(temp_mods), '.rds', '')
+		
+	## read in models ####
+	file_list <- list.files(path = file_path)
+	file_list <- stringr::str_subset(file_list, ".rds")
+	stacked_mods <- purrr::map2(file_path, file_list, read_mod_fun)
 
-  # oxy mods
-  mod_names_list <- list()
-  
-  for(i in oxy_mods){
-  	mod_names_list[[i]] <- paste0(file_path, i)
-  }
-  
-	oxy_mods <- lapply(mod_names_list, readRDS)
-	
-	# remove '.rds' from names
-  names(oxy_mods) <- str_replace_all(names(oxy_mods), '.rds', '')
+	file_list_AR <- list.files(path = file_path_AR)
+	file_list_AR <- stringr::str_subset(file_list_AR, ".rds")
+	AR_stacked_mods <- purrr::map2(file_path_AR, file_list_AR, read_mod_fun)
+
 
 	#### AICs ####
+	stacked_AICs <- purrr::map(stacked_mods, AIC_fun)
+  stacked_AICs <- tibble(file_list, stacked_AICs) %>% rename(AIC = stacked_AICs)
+  stacked_AICs$AIC <- unlist(stacked_AICs$AIC)
+  
+	AR_stacked_AICs <- purrr::map(AR_stacked_mods, AIC_fun)
+  AR_stacked_AICs <- tibble(file_list_AR, AR_stacked_AICs) %>% rename(AIC_AR = AR_stacked_AICs)
+  AR_stacked_AICs$AIC_AR <- unlist(AR_stacked_AICs$AIC_AR)
+  AR_stacked_AICs <- AR_stacked_AICs %>%
+  	rename(file_list = file_list_AR)
+  
+  stacked_comp <- left_join(stacked_AICs, AR_stacked_AICs, by = "file_list")
+	
+  stacked_comp <- stacked_comp %>% 
+  	mutate(diff = AIC - AIC_AR)
+	
+	
   
    # no cov mods
   AIC_func <- function(x){
@@ -200,5 +189,33 @@
 		save_kable(file = "output/tables/temp_mod_comp_sag_tvt.png")
 
 	
+	######
 	
+	t <- temp_mod_AICs %>% 
+		rename(AIC_temp = AIC) %>%
+		select(-cov)
 	
+	o <- oxy_mod_AICs %>% 
+		rename(AIC_oxy = AIC) %>%
+		select(-cov)
+	
+	n <- no_cov_mod_AICs %>% 
+		rename(AIC_no_cov = AIC) %>%
+		select(-cov, - model_type)
+	
+	AIC_single_mods <- left_join(t, o) %>%
+		left_join(., n) %>%
+		pivot_wider(
+			names_from = model_type,
+			values_from = c(AIC_temp, AIC_oxy)
+		) %>%
+		mutate(age = as.numeric(age)) %>%
+		arrange(species, age)
+	
+	sp_AICs_stacked <- AIC_single_mods %>%
+		group_split(species)
+	
+	atooth_AICs <- sp_AICs_stacked[[1]]
+	pcod_AICs <- sp_AICs_stacked[[2]]
+	pol_AICs <- sp_AICs_stacked[[3]]
+	yfin_AICs <- sp_AICs_stacked[[4]]

@@ -46,6 +46,7 @@ library(fmesher)
   #undefined columns selected"	
   
   fit$internal$variable_column
+  #"var" ? 
 
 	nd <- expand.grid(
 				yrprior_btemp = seq(
