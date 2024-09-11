@@ -6,12 +6,10 @@
 	library(here)
 	library(tidyverse)
 	library(lubridate)
-	library(mgcv)
 	library(MuMIn)
 	library(visreg)
 	library(data.table)
 	library(gamm4)
-#	library(brms)
 	library(mgcViz)
 	library(patchwork)
 	library(grid)
@@ -19,10 +17,8 @@
 	library(sf)
 	library(AICcmodavg)
 	library(sdmTMB)
-	#library(sdmTMBextra)
 	library(future)
 	library(DHARMa)
-	#library(tidymv)
 	library(ggsidekick)
 	library(see)
 	library(rnaturalearth)
@@ -67,7 +63,6 @@
 	#### read in specimen age & weight data ####
 	dat_all <- fread(file = here("./data/sp_dat_all_May_2024.csv"))
 
-		
 	dat_list <- dat_all %>% group_by(short_name) %>%
 		group_split()
 
@@ -78,19 +73,3 @@
 	world <- ne_countries(scale = "medium",
                       returnclass = "sf") 
 
-	#US_map <- world %>%
-  #	filter(name %in% c("United States"))
-
-	# Crop the polygon for plotting and efficiency:
-	# st_bbox(map_data) # find the rough coordinates
-	#AK_coast <- suppressWarnings(suppressMessages(
-  #	st_crop(US_map,
-  #  c(xmin = -179, ymin = 54, xmax = -155, ymax = 65))))
-#
-	#utm_zone <- 4326
-	#AK_coast_proj <- sf::st_transform(AK_coast, crs = utm_zone)
-	#
-
-	
-					 
-	

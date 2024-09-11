@@ -1,18 +1,18 @@
 # check residuals
 
-	file_path <- paste0(here(), "/output/model output/tinyVAST/")
+	file_path <- paste0(here(), "/output/model output/tinyVAST/fully MV/")
 	
 	file_list <- list.files(path = paste0(file_path))
 	
 	
-	# read AND reload mod function
-	rr_mod_fun <- function(mod){
-		
-		mod <- readRDS(paste0(file_path, mod))
-		mod <- try(reload_model(mod, check_gradient = TRUE))
-		mod
-		
-	}
+	## read AND reload mod function
+	#rr_mod_fun <- function(mod){
+	#	
+	#	mod <- readRDS(paste0(file_path, mod))
+	#	mod <- try(reload_model(mod, check_gradient = TRUE))
+	#	mod
+	#	
+	#}
 	
 	
 	# just read the rds file
@@ -49,11 +49,20 @@
   	
   }
   
-
+	# extract kappas
+	
+	 
+ 
+	kappa_fun <- function(mod) {
+  	
+	  	kappa <- mod$sdrep$par.fixed[["log_kappa"]]
+	  	kappa
+  	
+  }
 	
 	# pcod ####
 
-	pcod_file_list <- stringr::str_subset(file_list, 'pcod')
+	pcod_file_list <- stringr::str_subset(file_list, 'pcod')[1]
 	
 	pcod_mods <- purrr::map(pcod_file_list, read_mod_fun)
 	
@@ -84,6 +93,14 @@
   pc_AICs$AIC <- unlist(pc_AICs$AIC)
   
   
+  # kappa
+  pcod_kappas <- purrr::map(pcod_mods, kappa_fun)
+  
+  pcod_kappas <- tibble(n, pcod_kappas) %>% rename(kappa = pcod_kappas)
+
+  pcod_kappas$kappa <- unlist(pcod_kappas$kappa)
+  
+  
   # plot predictions - first need to rerun top model
   
   # need to refit model without expressions
@@ -102,7 +119,7 @@
   p <- predict(top_mod, newdata = nd, se.fit = FALSE)
   
   
-  
+
   # atooth ####
   
 	atooth_file_list <- stringr::str_subset(file_list, 'atooth')
@@ -132,6 +149,13 @@
   
   a_AICs$AIC <- unlist(a_AICs$AIC)
   
+  # kappa
+  atooth_kappas <- purrr::map(atooth_mods, kappa_fun)
+  
+  atooth_kappas <- tibble(n, atooth_kappas) %>% rename(kappa = atooth_kappas)
+
+  atooth_kappas$kappa <- unlist(atooth_kappas$kappa)
+ 
   
   # pollock ####
   pol_file_list <- stringr::str_subset(file_list, 'pol_')
