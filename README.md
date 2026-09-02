@@ -15,7 +15,7 @@ The scripts/ folder contains (1) all code to re-create the analyses within the p
 
 Code in scripts/ folder:
 
-Data-processing code:
+Data-processing code:<br>
 00a - load GAP data and fix missing stations.R: assigns stations to haul locations where station is missing, if haul locations match other station information<br>
 00b - wrangle and map data from GAP May 2024.R: map sample distribution<br>
 00c - remove outliers.R: follow NOAA AFSC protocol to remove outliers of length and weight (see paper for more detail)<br>
@@ -24,7 +24,7 @@ Data-processing code:
 00f - download and concatenate Bering10k ROMS projections.R: collates all forecasted temperature and oxygen output from the Bering10K model from the THREDDS server<br>
 00g - exploratory plots.R: make preliminary, exploratory plots<br>
 
-Model code:
+Model code:<br>
 01 - load each time.R: loads all packages, data needed to fit models<br> 
 02 - year models.R: fits models to explore change in size-at-age by year for all age classes of all species<br>
 03a - fully MV model arrowtooth.R: fits age-specific spatiotemporal GLMMs (see paper for more detail) to explore how temperature and oxygen predict changes in size-at-age for arrowtooth flounder<br>
