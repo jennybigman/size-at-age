@@ -16,10 +16,10 @@ The scripts/ folder contains (1) all code to re-create the analyses within the p
 Code in scripts/ folder:
 
 Data-processing code:
-00a - load GAP data and fix missing stations.R: assigns stations to haul locations where station is missing, if haul locations match other station information. 
-00b - wrangle and map data from GAP May 2024.R: map sample distribution   
-00c - remove outliers.R: follow NOAA AFSC protocol to remove outliers of length and weight (see paper for more detail). 
-00d - download and concatenate Bering10K output.R: collates all hindcasted temperature and oxygen output from the Bering10K model from the THREDDS server. 
+00a - load GAP data and fix missing stations.R: assigns stations to haul locations where station is missing, if haul locations match other station information<br>
+00b - wrangle and map data from GAP May 2024.R: map sample distribution<br>
+00c - remove outliers.R: follow NOAA AFSC protocol to remove outliers of length and weight (see paper for more detail)<br>
+00d - download and concatenate Bering10K output.R: collates all hindcasted temperature and oxygen output from the Bering10K model from the THREDDS server<br> 
 00e - data wrangling and nearest neighbor matching.R: matches each climate model grid cell to haul location. 
 00f - download and concatenate Bering10k ROMS projections.R: collates all forecasted temperature and oxygen output from the Bering10K model from the THREDDS server. 
 00g - exploratory plots.R: make preliminary, exploratory plots   
