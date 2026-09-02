@@ -7,3 +7,4 @@ Bigman, J. S., Barnett, L. A. K., Thorson, J. T., Anderson, S. C., Oke, K. B., K
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.17038970.svg)](https://doi.org/10.5281/zenodo.17038970)
 
 
+The data/ folder contains all data to fit the models in the paper: (1) size-at-age data for the four groundfish species and (2) environmental data from the Bering10K ROMS model (see [here](https://beringnpz.github.io/roms-bering-sea/B10K-dataset-docs/) for more detail about the model). 
